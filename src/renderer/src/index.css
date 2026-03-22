@@ -47,6 +47,41 @@ html.dark {
   color-scheme: dark;
 }
 
+/* High-contrast draft mode */
+html.high-contrast {
+  --so-bg:          #000000;
+  --so-surface:     #0d0d0d;
+  --so-elevated:    #161616;
+  --so-active:      #1e1e1e;
+  --so-border:      #3a3a3a;
+  --so-border-dim:  #252525;
+
+  /* No-color accent — plain white highlight */
+  --so-accent:      #ffffff;
+  --so-accent-hi:   #ffffff;
+  --so-accent-dim:  #2a2a2a;
+
+  /* Maximum contrast text */
+  --so-text:        #ffffff;
+  --so-text-2:      #b0b0b0;
+  --so-text-3:      #606060;
+
+  /* Screenplay element colors — clear, legible */
+  --so-scene:       #6fffb0;
+  --so-action:      #e8e8e8;
+  --so-character:   #ffb060;
+  --so-dialogue:    #a8d8ff;
+  --so-paren:       #c8b8ff;
+  --so-transition:  #ffe080;
+  --so-note:        #80ff80;
+
+  --so-success:     #6fffb0;
+  --so-warning:     #ffe080;
+  --so-error:       #ff6060;
+
+  color-scheme: dark;
+}
+
 /* Light theme */
 html.light {
   --so-bg:          #f4f4f7;
@@ -165,6 +200,95 @@ body {
   transition: width 0.2s ease, opacity 0.2s ease;
 }
 
+/* ── Typography CSS variables (Phase 6) ────────────────────────────────────── */
+/* Controlled by settingsStore.editorFontSize and editorLineHeight */
+
+:root {
+  --editor-font-size: 13px;
+  --editor-line-height: 1.7;
+}
+
+.editor-fontsize-sm { --editor-font-size: 12px; }
+.editor-fontsize-md { --editor-font-size: 13px; }
+.editor-fontsize-lg { --editor-font-size: 15px; }
+
+.editor-lh-normal   { --editor-line-height: 1.5; }
+.editor-lh-relaxed  { --editor-line-height: 1.7; }
+.editor-lh-spacious { --editor-line-height: 2.0; }
+
+/* ── Page settings CSS variables (Phase 6) ──────────────────────────────────── */
+/* Controlled by settingsStore page settings */
+
+:root {
+  /* Letter: 8.5×11in */
+  --page-width: 8.5in;
+  --page-min-height: 11in;
+  --page-padding-top: 1in;
+  --page-padding-bottom: 1in;
+  --page-padding-right: 1in;
+  --page-padding-left: 1.5in;
+}
+
+/* Page sizes */
+.page-size-letter {
+  --page-width: 8.5in;
+  --page-min-height: 11in;
+}
+.page-size-a4 {
+  --page-width: 8.27in;
+  --page-min-height: 11.69in;
+}
+
+/* Margin presets — compact / standard / wide */
+.page-margins-compact {
+  --page-padding-top: 0.75in;
+  --page-padding-bottom: 0.75in;
+  --page-padding-right: 0.75in;
+  --page-padding-left: 1.2in;
+}
+.page-margins-standard {
+  --page-padding-top: 1in;
+  --page-padding-bottom: 1in;
+  --page-padding-right: 1in;
+  --page-padding-left: 1.5in;
+}
+.page-margins-wide {
+  --page-padding-top: 1.25in;
+  --page-padding-bottom: 1.25in;
+  --page-padding-right: 1.25in;
+  --page-padding-left: 1.75in;
+}
+
+/* ── Settings panel slide-in from right ──────────────────────────────────── */
+
+@keyframes slide-in-right {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes slide-in-palette {
+  from { transform: translateY(-8px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0)    scale(1);    opacity: 1; }
+}
+
+/* ── Focus mode overlay transition ───────────────────────────────────────── */
+
+.focus-mode-enter {
+  animation: focusModeIn 0.25s ease forwards;
+}
+.focus-mode-exit {
+  animation: focusModeOut 0.2s ease forwards;
+}
+
+@keyframes focusModeIn {
+  from { opacity: 0; transform: scale(0.99); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes focusModeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 /* ── Screenplay page simulation ───────────────────────────────────────────── */
 
 .screenplay-page {
@@ -173,9 +297,9 @@ body {
   font-family: var(--font-screenplay);
   font-size: 12pt;
   line-height: 1;
-  width: 8.5in;
-  min-height: 11in;
-  padding: 1in 1in 1in 1.5in;
+  width: var(--page-width, 8.5in);
+  min-height: var(--page-min-height, 11in);
+  padding: var(--page-padding-top, 1in) var(--page-padding-right, 1in) var(--page-padding-bottom, 1in) var(--page-padding-left, 1.5in);
   box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
   margin: 0 auto;
   position: relative;
@@ -187,8 +311,8 @@ body {
 .screenplay-draft .ProseMirror {
   outline: none;
   font-family: var(--font-screenplay);
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: var(--editor-font-size, 13px);
+  line-height: var(--editor-line-height, 1.7);
   color: var(--so-text);
   min-height: 60vh;
 }

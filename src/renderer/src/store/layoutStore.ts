@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { ViewMode, SidebarTab, RightPanelTab } from '../types'
+import type { ViewMode, SidebarTab, RightPanelTab, LayoutPresetName } from '../types'
 
 interface LayoutState {
   // Panel visibility
@@ -21,6 +21,9 @@ interface LayoutState {
   leftSidebarTab: SidebarTab
   rightPanelTab: RightPanelTab
 
+  // Layout preset (Phase 6)
+  layoutPreset: LayoutPresetName
+
   // Actions
   setActiveView: (view: ViewMode) => void
   toggleLeftSidebar: () => void
@@ -33,6 +36,8 @@ interface LayoutState {
   setFocusMode: (active: boolean) => void
   setLeftSidebarTab: (tab: SidebarTab) => void
   setRightPanelTab: (tab: RightPanelTab) => void
+  applyLayoutPreset: (preset: LayoutPresetName) => void
+  resetPanelSizes: () => void
 }
 
 export const useLayoutStore = create<LayoutState>()(
@@ -46,6 +51,7 @@ export const useLayoutStore = create<LayoutState>()(
       focusMode: false,
       leftSidebarTab: 'navigator',
       rightPanelTab: 'notes',
+      layoutPreset: 'default',
 
       setActiveView: (activeView) => set({ activeView }),
 
@@ -71,6 +77,26 @@ export const useLayoutStore = create<LayoutState>()(
       setLeftSidebarTab: (leftSidebarTab) => set({ leftSidebarTab }),
 
       setRightPanelTab: (rightPanelTab) => set({ rightPanelTab }),
+
+      applyLayoutPreset: (preset) => {
+        switch (preset) {
+          case 'default':
+            set({ layoutPreset: preset, leftSidebarVisible: true, rightPanelVisible: true, focusMode: false, leftSidebarSize: 18, rightPanelSize: 22 })
+            break
+          case 'writer':
+            set({ layoutPreset: preset, leftSidebarVisible: true, rightPanelVisible: false, focusMode: false })
+            break
+          case 'focus':
+            set({ layoutPreset: preset, leftSidebarVisible: false, rightPanelVisible: false, focusMode: true })
+            break
+          case 'research':
+            set({ layoutPreset: preset, leftSidebarVisible: false, rightPanelVisible: true, focusMode: false })
+            break
+        }
+      },
+
+      resetPanelSizes: () =>
+        set({ leftSidebarSize: 18, rightPanelSize: 22 }),
     }),
     {
       name: 'scriptodd-layout',
@@ -82,6 +108,7 @@ export const useLayoutStore = create<LayoutState>()(
         activeView: s.activeView,
         leftSidebarTab: s.leftSidebarTab,
         rightPanelTab: s.rightPanelTab,
+        layoutPreset: s.layoutPreset,
       }),
     }
   )

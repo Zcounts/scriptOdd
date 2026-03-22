@@ -39,7 +39,14 @@ export const useAppStore = create<AppState>()(
       setTheme: (theme) => set({ theme }),
 
       toggleTheme: () =>
-        set((s) => ({ theme: s.theme === 'dark' ? 'light' : 'dark' })),
+        set((s) => {
+          const cycle: Record<string, import('../types').Theme> = {
+            dark: 'light',
+            light: 'high-contrast',
+            'high-contrast': 'dark',
+          }
+          return { theme: cycle[s.theme] ?? 'dark' }
+        }),
 
       setAppVersion: (appVersion) => set({ appVersion }),
 
