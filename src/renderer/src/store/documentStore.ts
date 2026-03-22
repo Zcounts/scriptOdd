@@ -29,8 +29,13 @@ interface DocumentState {
   // ── Notes ──────────────────────────────────────────────────────────────────
   notes: Note[]
 
+  // ── Pending load (set by project ops → picked up by editor provider) ────────
+  /** When non-null, the editor provider will setContent() then clear this */
+  pendingLoad: JSONContent | null
+
   // ── Actions ────────────────────────────────────────────────────────────────
   setEditorContent: (content: JSONContent) => void
+  setPendingLoad: (content: JSONContent | null) => void
   setActiveScene: (id: string | null) => void
   setStats: (stats: { wordCount?: number; pageCount?: number; sceneCount?: number }) => void
   setCursor: (line: number, column: number) => void
@@ -48,6 +53,7 @@ interface DocumentState {
 
 export const useDocumentStore = create<DocumentState>()((set, get) => ({
   editorContent: null,
+  pendingLoad: null,
   scenes: [],
   activeSceneId: null,
   wordCount: 0,
@@ -58,6 +64,8 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
   notes: [],
 
   setEditorContent: (editorContent) => set({ editorContent }),
+
+  setPendingLoad: (pendingLoad) => set({ pendingLoad }),
 
   setActiveScene: (activeSceneId) => set({ activeSceneId }),
 

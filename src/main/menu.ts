@@ -62,6 +62,11 @@ export function buildMenu(win: BrowserWindow): void {
           accelerator: 'CmdOrCtrl+Shift+E',
           click: () => sendAction(win, 'file:export-pdf'),
         },
+        {
+          label: 'Export Fountain…',
+          accelerator: 'CmdOrCtrl+Shift+F',
+          click: () => sendAction(win, 'file:export-fountain'),
+        },
         { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],
