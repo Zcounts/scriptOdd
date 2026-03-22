@@ -2,3 +2,6 @@ export { ScreenplayEditorProvider, useScreenplayEditor, getActiveBlockType, extr
 export { BlockTypePicker, BLOCK_TYPES } from './BlockTypePicker'
 export { SCREENPLAY_NODES, SceneHeadingNode, ActionNode, CharacterNode, DialogueNode, ParentheticalNode, TransitionNode, NoteNode } from './nodes'
 export { seedContent, SEED_SCENES } from './seedContent'
+export { ScreenplayKeyboardExtension } from './ScreenplayKeyboardExtension'
+export { ScreenplayAutoFormatExtension } from './ScreenplayAutoFormatExtension'
+export { SlashMenu } from './SlashMenu'

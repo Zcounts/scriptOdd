@@ -1,4 +1,21 @@
-import React from 'react'
+/**
+ * AppShell — Phase 3
+ *
+ * Main application shell.  Phase 3 adds screenplay-editing global shortcuts:
+ *   Ctrl+Enter          — insert new scene heading at cursor (or at doc end)
+ *   Alt+ArrowDown       — jump to next scene heading in document
+ *   Alt+ArrowUp         — jump to previous scene heading in document
+ *   Ctrl+F              — focus the editor (find-in-page via native Ctrl+F falls
+ *                         through to the underlying WebContents; kept as a hint)
+ *
+ * View shortcuts (Phase 1/2):
+ *   Ctrl+1/2/3          — Draft / Page / Board view
+ *   Ctrl+\              — toggle left sidebar
+ *   Ctrl+Shift+\        — toggle right panel
+ *   Ctrl+Shift+F        — focus mode
+ */
+
+import React, { useCallback } from 'react'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import { TitleBar } from './TitleBar'
 import { TopToolbar } from './TopToolbar'
@@ -10,6 +27,52 @@ import { PageView } from '../views/PageView'
 import { BoardView } from '../views/BoardView'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useKeyboard } from '../../hooks/useKeyboard'
+import { useScreenplayEditor } from '../../editor/ScreenplayEditorProvider'
+
+// ── Scene navigation helpers ──────────────────────────────────────────────────
+
+/** Find all absolute positions of sceneHeading nodes in the document. */
+function sceneHeadingPositions(editor: NonNullable<ReturnType<typeof useScreenplayEditor>>): number[] {
+  const positions: number[] = []
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name === 'sceneHeading') positions.push(pos)
+  })
+  return positions
+}
+
+function jumpToNextScene(editor: NonNullable<ReturnType<typeof useScreenplayEditor>>) {
+  const { pos: cursorPos } = editor.state.selection.$anchor
+  const positions = sceneHeadingPositions(editor)
+  const next = positions.find((p) => p > cursorPos)
+  if (next !== undefined) {
+    editor.chain().focus().setTextSelection(next + 1).run()
+  }
+}
+
+function jumpToPrevScene(editor: NonNullable<ReturnType<typeof useScreenplayEditor>>) {
+  const { pos: cursorPos } = editor.state.selection.$anchor
+  const positions = sceneHeadingPositions(editor)
+  // Find the last position that is strictly before current cursor block
+  const prev = [...positions].reverse().find((p) => p < cursorPos - 1)
+  if (prev !== undefined) {
+    editor.chain().focus().setTextSelection(prev + 1).run()
+  }
+}
+
+function insertNewScene(editor: NonNullable<ReturnType<typeof useScreenplayEditor>>) {
+  const newId = Math.random().toString(36).slice(2, 9)
+  editor
+    .chain()
+    .focus()
+    .insertContent({
+      type: 'sceneHeading',
+      attrs: { id: newId, sceneId: null, tags: [], noteIds: [] },
+      content: [],
+    })
+    .run()
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function AppShell(): React.JSX.Element {
   const {
@@ -27,14 +90,36 @@ export function AppShell(): React.JSX.Element {
     setRightPanelSize,
   } = useLayoutStore()
 
-  // Global keyboard shortcuts
+  const editor = useScreenplayEditor()
+
+  const handleNewScene = useCallback(() => {
+    if (editor) insertNewScene(editor)
+  }, [editor])
+
+  const handleNextScene = useCallback(() => {
+    if (editor) jumpToNextScene(editor)
+  }, [editor])
+
+  const handlePrevScene = useCallback(() => {
+    if (editor) jumpToPrevScene(editor)
+  }, [editor])
+
+  // ── Global keyboard shortcuts ─────────────────────────────────────────────
   useKeyboard([
+    // View switching
     { key: '1', modifiers: ['ctrl'], handler: () => setActiveView('draft'), preventDefault: true },
-    { key: '2', modifiers: ['ctrl'], handler: () => setActiveView('page'), preventDefault: true },
+    { key: '2', modifiers: ['ctrl'], handler: () => setActiveView('page'),  preventDefault: true },
     { key: '3', modifiers: ['ctrl'], handler: () => setActiveView('board'), preventDefault: true },
-    { key: '\\', modifiers: ['ctrl'], handler: toggleLeftSidebar, preventDefault: true },
-    { key: '\\', modifiers: ['ctrl', 'shift'], handler: toggleRightPanel, preventDefault: true },
-    { key: 'f', modifiers: ['ctrl', 'shift'], handler: toggleFocusMode, preventDefault: true },
+
+    // Panel toggles
+    { key: '\\', modifiers: ['ctrl'],          handler: toggleLeftSidebar, preventDefault: true },
+    { key: '\\', modifiers: ['ctrl', 'shift'], handler: toggleRightPanel,  preventDefault: true },
+    { key: 'f',  modifiers: ['ctrl', 'shift'], handler: toggleFocusMode,   preventDefault: true },
+
+    // Scene navigation & insertion (only meaningful in draft view)
+    { key: 'Enter', modifiers: ['ctrl'],       handler: handleNewScene,   preventDefault: true },
+    { key: 'ArrowDown', modifiers: ['alt'],    handler: handleNextScene,  preventDefault: true },
+    { key: 'ArrowUp',   modifiers: ['alt'],    handler: handlePrevScene,  preventDefault: true },
   ])
 
   const showLeft = leftSidebarVisible && !focusMode
@@ -69,7 +154,20 @@ export function AppShell(): React.JSX.Element {
           )}
 
           {/* Center editor */}
-          <Panel id="editor" order={2} defaultSize={showLeft && showRight ? 100 - leftSidebarSize - rightPanelSize : showLeft ? 100 - leftSidebarSize : showRight ? 100 - rightPanelSize : 100} minSize={30}>
+          <Panel
+            id="editor"
+            order={2}
+            defaultSize={
+              showLeft && showRight
+                ? 100 - leftSidebarSize - rightPanelSize
+                : showLeft
+                  ? 100 - leftSidebarSize
+                  : showRight
+                    ? 100 - rightPanelSize
+                    : 100
+            }
+            minSize={30}
+          >
             <EditorArea view={activeView} focusMode={focusMode} />
           </Panel>
 

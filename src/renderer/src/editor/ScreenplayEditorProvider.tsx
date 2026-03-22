@@ -15,6 +15,8 @@ import { useEditor } from '@tiptap/react'
 import type { Editor, JSONContent } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { SCREENPLAY_NODES } from './nodes'
+import { ScreenplayKeyboardExtension } from './ScreenplayKeyboardExtension'
+import { ScreenplayAutoFormatExtension } from './ScreenplayAutoFormatExtension'
 import { seedContent, SEED_SCENES } from './seedContent'
 import { useDocumentStore } from '../store/documentStore'
 
@@ -73,6 +75,9 @@ export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderP
           strike: false,
         }),
         ...SCREENPLAY_NODES,
+        // Phase 3 — smart keyboard flow + auto-formatting
+        ScreenplayKeyboardExtension,
+        ScreenplayAutoFormatExtension,
       ],
       content: seedContent,
       autofocus: 'end',

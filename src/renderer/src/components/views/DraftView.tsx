@@ -1,9 +1,8 @@
 /**
- * Draft View — Phase 2
+ * Draft View — Phase 3
  *
- * Hosts the live screenplay editor (Tiptap) with a minimal block-type picker
- * toolbar. The editor instance lives in ScreenplayEditorProvider and is
- * accessed via context so its state survives view switches.
+ * Hosts the live screenplay editor (Tiptap) with a block-type picker toolbar
+ * and the Phase 3 slash-command floating menu.
  */
 
 import React from 'react'
@@ -11,6 +10,7 @@ import { EditorContent } from '@tiptap/react'
 import { LayoutTemplate } from 'lucide-react'
 import { useScreenplayEditor } from '../../editor/ScreenplayEditorProvider'
 import { BlockTypePicker } from '../../editor/BlockTypePicker'
+import { SlashMenu } from '../../editor/SlashMenu'
 
 interface DraftViewProps {
   focusMode?: boolean
@@ -36,8 +36,12 @@ export function DraftView({ focusMode = false }: DraftViewProps): React.JSX.Elem
 
           <div className="flex-1" />
 
-          <span className="text-xxs text-so-text-3 select-none">
-            Tab · Shift+Tab to cycle types · Ctrl+Z undo · Ctrl+Y redo
+          {/* Keyboard hints */}
+          <span className="text-xxs text-so-text-3 select-none hidden sm:block">
+            <kbd className="opacity-60">Enter</kbd> advance &nbsp;·&nbsp;
+            <kbd className="opacity-60">Tab</kbd>/<kbd className="opacity-60">Shift+Tab</kbd> cycle type &nbsp;·&nbsp;
+            <kbd className="opacity-60">/</kbd> command &nbsp;·&nbsp;
+            <kbd className="opacity-60">Ctrl+Z</kbd> undo
           </span>
         </div>
       )}
@@ -51,7 +55,11 @@ export function DraftView({ focusMode = false }: DraftViewProps): React.JSX.Elem
           ].join(' ')}
         >
           {editor ? (
-            <EditorContent editor={editor} className="outline-none" />
+            <>
+              <EditorContent editor={editor} className="outline-none" />
+              {/* Slash command palette — portal-rendered, always mounted */}
+              <SlashMenu editor={editor} />
+            </>
           ) : (
             <div className="flex items-center justify-center h-32 text-so-text-3 text-sm">
               Loading editor…
