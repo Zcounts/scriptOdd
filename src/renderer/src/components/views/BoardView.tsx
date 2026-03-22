@@ -1,14 +1,72 @@
-import React, { useState, useRef } from 'react'
-import { LayoutGrid, Film, StickyNote } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { LayoutGrid, Film, StickyNote, Pencil, Check, X } from 'lucide-react'
 import { useDocumentStore } from '../../store/documentStore'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useScreenplayEditor } from '../../editor/ScreenplayEditorProvider'
 import { jumpToSceneById, reorderScenesInEditor } from '../../editor/sceneUtils'
-import type { Scene } from '../../types'
+import type { Scene, SceneStatus } from '../../types'
+import { SCENE_STATUS_CONFIG } from '../../types'
+
+// ── Status utilities ──────────────────────────────────────────────────────────
+
+const STATUS_ORDER: SceneStatus[] = ['not-started', 'in-progress', 'needs-revision', 'complete']
+
+interface StatusPickerProps {
+  status?: SceneStatus
+  onSelect: (s: SceneStatus | null) => void
+  onClose: () => void
+}
+
+function StatusPickerDropdown({ status, onSelect, onClose }: StatusPickerProps): React.JSX.Element {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [onClose])
+
+  return (
+    <div
+      ref={ref}
+      className="absolute top-full left-0 mt-1 z-50 bg-so-elevated border border-so-border rounded-lg shadow-lg py-1 min-w-[148px]"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {STATUS_ORDER.map((s) => {
+        const cfg = SCENE_STATUS_CONFIG[s]
+        return (
+          <button
+            key={s}
+            type="button"
+            className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-so-text hover:bg-so-active transition-colors text-left"
+            onClick={() => { onSelect(s); onClose() }}
+          >
+            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
+            <span>{cfg.label}</span>
+            {status === s && <Check size={10} className="ml-auto text-so-accent" />}
+          </button>
+        )
+      })}
+      {status && (
+        <button
+          type="button"
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-so-text-3 hover:bg-so-active transition-colors text-left border-t border-so-border-dim"
+          onClick={() => { onSelect(null); onClose() }}
+        >
+          <span className="w-2.5 h-2.5 rounded-full border border-current flex-shrink-0 opacity-40" />
+          <span>Clear status</span>
+        </button>
+      )}
+    </div>
+  )
+}
 
 export function BoardView(): React.JSX.Element {
   const scenes = useDocumentStore((s) => s.scenes)
   const activeSceneId = useDocumentStore((s) => s.activeSceneId)
+  const updateScene = useDocumentStore((s) => s.updateScene)
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden view-canvas">
@@ -20,7 +78,7 @@ export function BoardView(): React.JSX.Element {
       </div>
 
       <div className="flex-1 overflow-auto p-6">
-        {scenes.length === 0 ? <EmptyBoard /> : <SceneBoard scenes={scenes} activeSceneId={activeSceneId} />}
+        {scenes.length === 0 ? <EmptyBoard /> : <SceneBoard scenes={scenes} activeSceneId={activeSceneId} updateScene={updateScene} />}
       </div>
     </div>
   )
@@ -29,6 +87,7 @@ export function BoardView(): React.JSX.Element {
 export function CompactBoardPanel(): React.JSX.Element {
   const scenes = useDocumentStore((s) => s.scenes)
   const activeSceneId = useDocumentStore((s) => s.activeSceneId)
+  const updateScene = useDocumentStore((s) => s.updateScene)
 
   if (scenes.length === 0) {
     return (
@@ -42,7 +101,13 @@ export function CompactBoardPanel(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-2 p-3">
       {scenes.map((scene, i) => (
-        <CompactCard key={scene.id} scene={scene} number={i + 1} isActive={activeSceneId === scene.id} />
+        <CompactCard
+          key={scene.id}
+          scene={scene}
+          number={i + 1}
+          isActive={activeSceneId === scene.id}
+          onUpdateScene={(patch) => updateScene(scene.id, patch)}
+        />
       ))}
     </div>
   )
@@ -51,9 +116,10 @@ export function CompactBoardPanel(): React.JSX.Element {
 interface SceneBoardProps {
   scenes: Scene[]
   activeSceneId: string | null
+  updateScene: (id: string, patch: { title?: string; status?: SceneStatus | null }) => void
 }
 
-function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Element {
+function SceneBoard({ scenes, activeSceneId, updateScene }: SceneBoardProps): React.JSX.Element {
   const reorderScenes = useDocumentStore((s) => s.reorderScenes)
   const editor = useScreenplayEditor()
   const { setActiveView } = useLayoutStore()
@@ -155,6 +221,7 @@ function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Eleme
               isDragging={isDragging}
               isActive={activeSceneId === scene.id}
               onClick={() => handleCardClick(scene.id)}
+              onUpdateScene={(patch) => updateScene(scene.id, patch)}
             />
 
             {isOver && dropPos === 'after' && (
@@ -173,67 +240,223 @@ interface SceneCardProps {
   isDragging?: boolean
   isActive?: boolean
   onClick?: () => void
+  onUpdateScene: (patch: { title?: string; status?: SceneStatus | null }) => void
 }
 
-function SceneCard({ scene, number, isDragging = false, isActive = false, onClick }: SceneCardProps): React.JSX.Element {
-  const accentColor = scene.color ?? undefined
+function SceneCard({ scene, number, isDragging = false, isActive = false, onClick, onUpdateScene }: SceneCardProps): React.JSX.Element {
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(scene.title ?? '')
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editingTitle) {
+      setTitleDraft(scene.title ?? '')
+      setTimeout(() => inputRef.current?.select(), 0)
+    }
+  }, [editingTitle])
+
+  function commitTitle() {
+    const trimmed = titleDraft.trim()
+    onUpdateScene({ title: trimmed || undefined })
+    setEditingTitle(false)
+  }
+
+  function handleTitleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') { e.preventDefault(); commitTitle() }
+    if (e.key === 'Escape') setEditingTitle(false)
+    e.stopPropagation()
+  }
+
+  const statusColor = scene.status ? SCENE_STATUS_CONFIG[scene.status].color : undefined
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
       className={[
-        'w-56 min-h-36 rounded-[22px] border flex flex-col cursor-pointer transition-all duration-150 outline-none',
-        'bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.02))] shadow-[0_18px_34px_rgba(0,0,0,0.12)]',
+        'w-56 min-h-36 rounded-[22px] border flex overflow-hidden transition-all duration-150 outline-none group/card',
+        'shadow-[0_18px_34px_rgba(0,0,0,0.12)]',
         'hover:-translate-y-0.5 hover:shadow-[0_24px_44px_rgba(0,0,0,0.16)]',
-        'focus-visible:ring-2 focus-visible:ring-so-accent focus-visible:ring-offset-1',
         isDragging ? 'opacity-40 scale-95 cursor-grabbing' : '',
         isActive ? 'border-[color:rgba(202,162,75,0.4)]' : 'border-so-border',
       ].join(' ')}
-      style={accentColor ? { borderTopColor: accentColor, borderTopWidth: 3 } : { backgroundColor: 'rgba(255,255,255,0.05)' }}
+      style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
     >
-      <div className="flex items-center gap-1.5 px-3 pt-3 pb-1.5">
-        <span className="text-xxs text-so-text-3 font-mono tabular-nums">{String(number).padStart(2, '0')}</span>
-        <div className="flex-1" />
-        {scene.noteIds.length > 0 && (
-          <span className="flex items-center gap-0.5 text-xxs text-so-text-3">
-            <StickyNote size={9} />
-            <span>{scene.noteIds.length}</span>
-          </span>
+      {/* Left-edge status stripe */}
+      <div
+        className="w-1 flex-shrink-0 rounded-l-[22px] transition-colors duration-200"
+        style={{ backgroundColor: statusColor ?? 'transparent' }}
+      />
+
+      {/* Card content */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onClick}
+        onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
+        className="flex-1 flex flex-col cursor-pointer focus-visible:ring-2 focus-visible:ring-so-accent focus-visible:ring-offset-1 outline-none"
+      >
+        {/* Header row: number + status dot + notes */}
+        <div className="flex items-center gap-1.5 px-3 pt-3 pb-1.5">
+          <span className="text-xxs text-so-text-3 font-mono tabular-nums">{String(number).padStart(2, '0')}</span>
+
+          {/* Status dot / picker */}
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="w-2.5 h-2.5 rounded-full border transition-opacity hover:opacity-100 focus:outline-none"
+              style={
+                statusColor
+                  ? { backgroundColor: statusColor, borderColor: statusColor }
+                  : { backgroundColor: 'transparent', borderColor: 'currentColor', opacity: 0.25 }
+              }
+              title={scene.status ? SCENE_STATUS_CONFIG[scene.status].label : 'Set status'}
+              onClick={() => setStatusPickerOpen((v) => !v)}
+            />
+            {statusPickerOpen && (
+              <StatusPickerDropdown
+                status={scene.status}
+                onSelect={(s) => onUpdateScene({ status: s })}
+                onClose={() => setStatusPickerOpen(false)}
+              />
+            )}
+          </div>
+
+          <div className="flex-1" />
+
+          {/* Edit title button */}
+          <button
+            type="button"
+            className="opacity-0 group-hover/card:opacity-40 hover:!opacity-100 text-so-text-3 transition-opacity"
+            onClick={(e) => { e.stopPropagation(); setEditingTitle(true) }}
+            title="Edit scene title"
+          >
+            <Pencil size={9} />
+          </button>
+
+          {scene.noteIds.length > 0 && (
+            <span className="flex items-center gap-0.5 text-xxs text-so-text-3">
+              <StickyNote size={9} />
+              <span>{scene.noteIds.length}</span>
+            </span>
+          )}
+        </div>
+
+        {/* Title (prominent) + heading (subtitle) */}
+        <div className="px-3 pb-1.5">
+          {scene.title ? (
+            <>
+              <p className="text-sm font-semibold text-so-text leading-tight">{scene.title}</p>
+              <p className="text-xxs text-so-scene uppercase mt-0.5 leading-tight truncate">{scene.heading || 'UNTITLED SCENE'}</p>
+            </>
+          ) : (
+            <p className="text-xs font-semibold text-so-scene uppercase leading-tight">{scene.heading || 'UNTITLED SCENE'}</p>
+          )}
+        </div>
+
+        {scene.synopsis && (
+          <div className="px-3 pb-2 flex-1">
+            <p className="text-xxs text-so-text-2 leading-relaxed line-clamp-4">{scene.synopsis}</p>
+          </div>
+        )}
+
+        {/* Inline title editor */}
+        {editingTitle && (
+          <div className="px-3 pb-2" onClick={(e) => e.stopPropagation()}>
+            <div className="flex gap-1">
+              <input
+                ref={inputRef}
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={handleTitleKeyDown}
+                onBlur={commitTitle}
+                placeholder="Scene title…"
+                className="flex-1 text-xs bg-so-elevated border border-so-accent rounded px-2 py-1 text-so-text placeholder:text-so-text-3 outline-none selectable"
+              />
+              <button
+                type="button"
+                onClick={commitTitle}
+                className="px-1.5 py-1 text-so-accent hover:bg-so-elevated rounded transition-colors"
+              >
+                <Check size={11} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingTitle(false)}
+                className="px-1.5 py-1 text-so-text-3 hover:bg-so-elevated rounded transition-colors"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
-
-      <div className="px-3 pb-1.5">
-        <p className="text-xs font-semibold text-so-text uppercase leading-tight">{scene.heading || 'UNTITLED SCENE'}</p>
-      </div>
-
-      {scene.synopsis && (
-        <div className="px-3 pb-2 flex-1">
-          <p className="text-xxs text-so-text-2 leading-relaxed line-clamp-4">{scene.synopsis}</p>
-        </div>
-      )}
-
-
     </div>
   )
 }
 
-function CompactCard({ scene, number, isActive = false }: { scene: Scene; number: number; isActive?: boolean }) {
+function CompactCard({
+  scene,
+  number,
+  isActive = false,
+  onUpdateScene,
+}: {
+  scene: Scene
+  number: number
+  isActive?: boolean
+  onUpdateScene: (patch: { title?: string; status?: SceneStatus | null }) => void
+}) {
+  const [statusPickerOpen, setStatusPickerOpen] = useState(false)
+  const statusColor = scene.status ? SCENE_STATUS_CONFIG[scene.status].color : undefined
+
   return (
     <div
       className={[
-        'rounded-2xl border px-3 py-2.5 bg-white/5 transition-colors',
-        isActive ? 'border-[color:rgba(202,162,75,0.4)] bg-[rgba(202,162,75,0.1)]' : 'border-so-border',
+        'rounded-2xl border flex overflow-hidden transition-colors group/compact',
+        isActive ? 'border-[color:rgba(202,162,75,0.4)] bg-[rgba(202,162,75,0.1)]' : 'border-so-border bg-white/5',
       ].join(' ')}
     >
-      <div className="flex items-center gap-2 text-xxs uppercase tracking-[0.18em] text-so-text-3">
-        <span>{String(number).padStart(2, '0')}</span>
-        <span>Scene</span>
+      {/* Left-edge status stripe */}
+      <div
+        className="w-1 flex-shrink-0 rounded-l-2xl transition-colors duration-200"
+        style={{ backgroundColor: statusColor ?? 'transparent' }}
+      />
+      <div className="flex-1 px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <span className="text-xxs uppercase tracking-[0.18em] text-so-text-3 font-mono">
+            {String(number).padStart(2, '0')}
+          </span>
+          {/* Status dot */}
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="w-2 h-2 rounded-full border transition-opacity hover:opacity-100"
+              style={
+                statusColor
+                  ? { backgroundColor: statusColor, borderColor: statusColor }
+                  : { backgroundColor: 'transparent', borderColor: 'currentColor', opacity: 0.25 }
+              }
+              title={scene.status ? SCENE_STATUS_CONFIG[scene.status].label : 'Set status'}
+              onClick={() => setStatusPickerOpen((v) => !v)}
+            />
+            {statusPickerOpen && (
+              <StatusPickerDropdown
+                status={scene.status}
+                onSelect={(s) => onUpdateScene({ status: s })}
+                onClose={() => setStatusPickerOpen(false)}
+              />
+            )}
+          </div>
+        </div>
+        {scene.title ? (
+          <>
+            <p className="mt-1 text-xs font-semibold text-so-text">{scene.title}</p>
+            <p className="text-xxs text-so-scene uppercase truncate">{scene.heading || 'Untitled scene'}</p>
+          </>
+        ) : (
+          <p className="mt-1 text-xs font-medium text-so-text">{scene.heading || 'Untitled scene'}</p>
+        )}
+        {scene.synopsis && <p className="mt-1 text-xxs leading-relaxed text-so-text-2">{scene.synopsis}</p>}
       </div>
-      <p className="mt-1 text-xs font-medium text-so-text">{scene.heading || 'Untitled scene'}</p>
-      {scene.synopsis && <p className="mt-1 text-xxs leading-relaxed text-so-text-2">{scene.synopsis}</p>}
     </div>
   )
 }
