@@ -60,12 +60,19 @@ function cleanCharacterName(raw: string): string {
 /** Extract and remember all entities found in the document JSON */
 function extractEntities(json: JSONContent): void {
   const { addCharacter, addLocation, addSceneHeading } = useAutocompleteStore.getState()
+  const blocks = json.content ?? []
 
-  for (const block of json.content ?? []) {
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]
     if (block.type === 'character') {
-      const text = (block.content ?? []).map((n) => n.text ?? '').join('').trim()
-      const name = cleanCharacterName(text)
-      if (name) addCharacter(name)
+      // Only commit the name when the cue is followed by dialogue or parenthetical,
+      // i.e. the user pressed Enter and left the character block — not on every keystroke.
+      const next = blocks[i + 1]
+      if (next?.type === 'dialogue' || next?.type === 'parenthetical') {
+        const text = (block.content ?? []).map((n) => n.text ?? '').join('').trim()
+        const name = cleanCharacterName(text)
+        if (name) addCharacter(name)
+      }
     } else if (block.type === 'sceneHeading') {
       const heading = (block.content ?? []).map((n) => n.text ?? '').join('').trim()
       if (heading) {

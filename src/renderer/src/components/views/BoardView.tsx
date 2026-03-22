@@ -95,7 +95,9 @@ function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Eleme
     dragCounter.current = 0
     setDragOverId(null)
 
-    const sourceId = draggedId
+    // Use dataTransfer — set synchronously in handleDragStart and always reliable
+    // at drop time, unlike React state which may be stale in the closure.
+    const sourceId = e.dataTransfer.getData('text/plain')
     setDraggedId(null)
     if (!sourceId || sourceId === targetId) return
 

@@ -15,7 +15,6 @@ import {
   Moon,
   Sun,
   Contrast,
-  Dot,
 } from 'lucide-react'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useAppStore } from '../../store/appStore'
@@ -127,19 +126,7 @@ export function TopToolbar(): React.JSX.Element {
         </Tooltip>
       </div>
 
-      <div className="flex-1 min-w-0 flex items-center justify-center">
-        <div className="hidden xl:flex items-center gap-1 text-[11px] uppercase tracking-[0.22em] text-so-text-3">
-          <span className="text-so-text-2">Writing Workspace</span>
-          <Dot size={14} strokeWidth={1.6} className="text-so-accent" />
-          <span>{activeView === 'page' ? 'Paged' : activeView === 'draft' ? 'Drafting' : 'Structure'}</span>
-          {isModified && (
-            <>
-              <Dot size={14} strokeWidth={1.6} className="text-so-accent" />
-              <span className="text-so-accent-hi">Edited</span>
-            </>
-          )}
-        </div>
-      </div>
+      <div className="flex-1 min-w-0" />
 
       <div className="flex items-center gap-1 rounded-full border border-so-border bg-white/5 p-1">
         <Tooltip content="Jump to Scene (Ctrl+P)" side="bottom">
