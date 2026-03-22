@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { AppShell } from './components/layout/AppShell'
 import { useAppStore } from './store/appStore'
 import { useLayoutStore } from './store/layoutStore'
+import { ScreenplayEditorProvider } from './editor/ScreenplayEditorProvider'
 
 export default function App(): React.JSX.Element {
   const { theme } = useAppStore()
@@ -67,5 +68,9 @@ export default function App(): React.JSX.Element {
     return unsubscribe
   }, [setActiveView])
 
-  return <AppShell />
+  return (
+    <ScreenplayEditorProvider>
+      <AppShell />
+    </ScreenplayEditorProvider>
+  )
 }
