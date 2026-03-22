@@ -45,7 +45,14 @@ export const SceneHeadingNode = Node.create({
   defining: true,
 
   addAttributes() {
-    return blockAttrs
+    return {
+      ...blockAttrs,
+      /**
+       * true  = this slugline is the first in a new scene container (created by Ctrl+Enter)
+       * false = additional slugline within the current scene
+       */
+      sceneStart: { default: false as boolean },
+    }
   },
 
   parseHTML() {

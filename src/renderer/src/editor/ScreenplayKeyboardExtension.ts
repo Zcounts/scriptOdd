@@ -1,8 +1,9 @@
 /**
- * ScreenplayKeyboardExtension — Phase 3
+ * ScreenplayKeyboardExtension — Phase 3 → Prompt 3 refactor
  *
  * Smart keyboard behavior for screenplay editing:
  *  - Enter: context-aware block transitions (character → dialogue, etc.)
+ *  - Ctrl+Enter: always creates a new scene container (sceneStart heading)
  *  - Tab: cycle forward through element types
  *  - Shift-Tab: cycle backward through element types
  *  - Backspace: prevent cross-type block merges; sensible escape from dialogue
@@ -15,9 +16,12 @@
  *  dialogue      Enter (non-empty, at end) → character (next speaker)
  *  dialogue      Enter (mid-text) → dialogue (split; default)
  *  parenthetical Enter → dialogue (resume speech)
- *  transition    Enter (non-empty) → sceneHeading (new scene)
+ *  transition    Enter (non-empty) → sceneHeading slugline (same scene, NOT a new scene)
  *  transition    Enter (empty) → action (abort)
  *  note          Enter → action
+ *
+ *  Ctrl+Enter (from anywhere): end current block → new sceneHeading with
+ *    sceneStart = true, fresh sceneId → a brand-new scene container.
  *
  *  Tab/Shift-Tab cycle through the canonical screenplay order:
  *    sceneHeading → action → character → dialogue → parenthetical → transition → note → (wrap)
@@ -73,6 +77,27 @@ export const ScreenplayKeyboardExtension = Extension.create({
 
   addKeyboardShortcuts() {
     return {
+      // ── Ctrl+Enter — new scene container ────────────────────────────────────
+      'Ctrl-Enter': () => {
+        const editor = this.editor
+        const { $anchor } = editor.state.selection
+        // Move to end of current block so the split always creates a clean new block below
+        const endOfBlock = $anchor.end()
+        const sceneId = newId()
+        return editor
+          .chain()
+          .setTextSelection(endOfBlock)
+          .splitBlock()
+          .setNode('sceneHeading', {
+            id: newId(),
+            sceneId,
+            sceneStart: true,
+            tags: [],
+            noteIds: [],
+          })
+          .run()
+      },
+
       // ── Enter ───────────────────────────────────────────────────────────────
       Enter: () => {
         const editor = this.editor
@@ -130,13 +155,15 @@ export const ScreenplayKeyboardExtension = Extension.create({
             return editor.chain().splitBlock().setNode('dialogue', attrs()).run()
           }
 
-          // Transition → new scene heading (non-empty) or abort to action (empty)
+          // Transition → slugline within current scene (non-empty) or abort to action (empty)
+          // To start a NEW scene the writer uses Ctrl+Enter, not Enter after transition.
           case 'transition': {
             if (empty) {
               return editor.chain().setNode('action', attrs()).run()
             }
-            // New scene heading gets a fresh sceneId = null (new scene to be assigned later)
-            return editor.chain().splitBlock().setNode('sceneHeading', attrs({ sceneId: null })).run()
+            // Produce a sceneHeading that is an additional slugline in the current scene.
+            // sceneStart stays false (default) so it does NOT open a new scene container.
+            return editor.chain().splitBlock().setNode('sceneHeading', attrs()).run()
           }
 
           // Note → action below

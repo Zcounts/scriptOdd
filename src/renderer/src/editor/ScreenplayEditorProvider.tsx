@@ -31,6 +31,7 @@ import { SCREENPLAY_NODES } from './nodes'
 import { ScreenplayKeyboardExtension } from './ScreenplayKeyboardExtension'
 import { ScreenplayAutoFormatExtension } from './ScreenplayAutoFormatExtension'
 import { SemanticHighlightExtension, SEM_REBUILD_META, parseLocationFromHeading } from './SemanticHighlightExtension'
+import { SceneNumberExtension } from './SceneNumberExtension'
 import { seedContent, SEED_SCENES } from './seedContent'
 import { deriveScenes, activeSceneAtPos } from './sceneUtils'
 import { useDocumentStore } from '../store/documentStore'
@@ -150,6 +151,7 @@ export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEdi
       ScreenplayKeyboardExtension,
       ScreenplayAutoFormatExtension,
       SemanticHighlightExtension,
+      SceneNumberExtension,
     ],
     content: seedContent,
     autofocus: 'end',
