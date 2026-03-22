@@ -6,7 +6,7 @@ export type Theme = 'dark' | 'light'
 
 export type SidebarTab = 'navigator' | 'characters' | 'locations'
 
-export type RightPanelTab = 'notes' | 'outline'
+export type RightPanelTab = 'notes' | 'outline' | 'board'
 
 // ── Screenplay element types ──────────────────────────────────────────────────
 
