@@ -1,0 +1,181 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design token definitions ─────────────────────────────────────────────── */
+
+/* Dark theme (default — applies when html.dark or no class) */
+:root,
+html.dark {
+  /* Surfaces */
+  --so-bg:          #0c0c0f;
+  --so-surface:     #131316;
+  --so-elevated:    #1a1a1e;
+  --so-active:      #222228;
+  --so-border:      #2d2d35;
+  --so-border-dim:  #1f1f26;
+
+  /* Accent — muted purple */
+  --so-accent:      #7c5cbf;
+  --so-accent-hi:   #9b72e6;
+  --so-accent-dim:  #3d2e60;
+
+  /* Text */
+  --so-text:        #e4e4ec;
+  --so-text-2:      #9898a8;
+  --so-text-3:      #52525c;
+
+  /* Screenplay semantic colors */
+  --so-scene:       #4ec994;
+  --so-action:      #c8c8d4;
+  --so-character:   #e8945a;
+  --so-dialogue:    #9bbfe8;
+  --so-paren:       #b0a0e0;
+  --so-transition:  #c9b44e;
+  --so-note:        #7aad7a;
+
+  /* Status */
+  --so-success:     #4ec994;
+  --so-warning:     #c9b44e;
+  --so-error:       #e86b5a;
+
+  /* Typography */
+  --font-ui:        'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-screenplay:'Courier Prime', 'Courier New', Courier, monospace;
+  --font-mono:      'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace;
+
+  color-scheme: dark;
+}
+
+/* Light theme */
+html.light {
+  --so-bg:          #f4f4f7;
+  --so-surface:     #ffffff;
+  --so-elevated:    #ededf0;
+  --so-active:      #e4e4e8;
+  --so-border:      #d0d0d8;
+  --so-border-dim:  #e0e0e8;
+
+  --so-accent:      #6b42b0;
+  --so-accent-hi:   #8050d0;
+  --so-accent-dim:  #ede0ff;
+
+  --so-text:        #1a1a22;
+  --so-text-2:      #50505e;
+  --so-text-3:      #909098;
+
+  --so-scene:       #1a7a50;
+  --so-action:      #1a1a22;
+  --so-character:   #b05818;
+  --so-dialogue:    #2060a0;
+  --so-paren:       #6040a0;
+  --so-transition:  #8a6a00;
+  --so-note:        #3a8a3a;
+
+  --so-success:     #1a7a50;
+  --so-warning:     #8a6a00;
+  --so-error:       #c04030;
+
+  color-scheme: light;
+}
+
+/* ── Base styles ──────────────────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+body {
+  background-color: var(--so-bg);
+  color: var(--so-text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none; /* Disable default text selection in app chrome */
+}
+
+/* Allow selection inside editor areas */
+.selectable {
+  user-select: text;
+}
+
+/* ── Scrollbar styling ────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--so-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--so-text-3);
+}
+
+/* ── Window drag region ───────────────────────────────────────────────────── */
+
+.titlebar-drag {
+  -webkit-app-region: drag;
+}
+.titlebar-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* ── Resizable panel handles ──────────────────────────────────────────────── */
+
+[data-panel-group-direction='horizontal'] > [data-panel-resize-handle-enabled] {
+  width: 4px;
+  background: transparent;
+  transition: background 0.15s;
+  cursor: col-resize;
+}
+[data-panel-group-direction='horizontal'] > [data-panel-resize-handle-enabled]:hover,
+[data-panel-group-direction='horizontal'] > [data-panel-resize-handle-enabled][data-resize-handle-active] {
+  background: var(--so-accent);
+}
+
+/* ── Focus ring ───────────────────────────────────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--so-accent-hi);
+  outline-offset: 2px;
+}
+
+/* ── Transition utilities ─────────────────────────────────────────────────── */
+
+.transition-panel {
+  transition: width 0.2s ease, opacity 0.2s ease;
+}
+
+/* ── Screenplay page simulation ───────────────────────────────────────────── */
+
+.screenplay-page {
+  background: white;
+  color: #1a1a1a;
+  font-family: var(--font-screenplay);
+  font-size: 12pt;
+  line-height: 1;
+  width: 8.5in;
+  min-height: 11in;
+  padding: 1in 1.5in 1in 1.5in;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
+  margin: 0 auto;
+}
