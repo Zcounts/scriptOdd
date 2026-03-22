@@ -13,6 +13,7 @@ import React, { useMemo } from 'react'
 import { BookOpen } from 'lucide-react'
 import type { JSONContent } from '@tiptap/core'
 import { useDocumentStore } from '../../store/documentStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import { extractText } from '../../editor/ScreenplayEditorProvider'
 
 interface PageViewProps {
@@ -111,13 +112,14 @@ interface ScreenplayPageProps {
   blocks: JSONContent[]
   pageNumber: number
   totalPages: number
+  showChrome?: boolean
 }
 
-function ScreenplayPage({ blocks, pageNumber, totalPages }: ScreenplayPageProps): React.JSX.Element {
+function ScreenplayPage({ blocks, pageNumber, totalPages, showChrome = true }: ScreenplayPageProps): React.JSX.Element {
   return (
     <div className="screenplay-page">
-      {/* Page number header (top-right, except page 1) */}
-      {pageNumber > 1 && (
+      {/* Page number header (top-right, except page 1) — hidden when showChrome=false */}
+      {showChrome && pageNumber > 1 && (
         <div
           style={{
             position: 'absolute',
@@ -136,8 +138,8 @@ function ScreenplayPage({ blocks, pageNumber, totalPages }: ScreenplayPageProps)
         <PageBlock key={block.attrs?.id ?? `b-${pageNumber}-${i}`} block={block} />
       ))}
 
-      {/* Page-break indicator (not on last page) */}
-      {pageNumber < totalPages && (
+      {/* Page-break indicator (not on last page) — hidden when showChrome=false */}
+      {showChrome && pageNumber < totalPages && (
         <div
           style={{
             position: 'absolute',
@@ -163,11 +165,18 @@ function ScreenplayPage({ blocks, pageNumber, totalPages }: ScreenplayPageProps)
 
 export function PageView({ focusMode = false }: PageViewProps): React.JSX.Element {
   const editorContent = useDocumentStore((s) => s.editorContent)
+  const { pageSize, pageMarginsPreset, showPageChrome } = useSettingsStore()
 
   const pages = useMemo(() => {
     const content = editorContent?.content ?? []
     return splitIntoPages(content)
   }, [editorContent])
+
+  // Build CSS classes for the page canvas to apply size/margin vars
+  const canvasClasses = [
+    `page-size-${pageSize}`,
+    `page-margins-${pageMarginsPreset}`,
+  ].join(' ')
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden bg-so-bg">
@@ -176,6 +185,11 @@ export function PageView({ focusMode = false }: PageViewProps): React.JSX.Elemen
         <div className="flex items-center h-8 px-4 border-b border-so-border-dim bg-so-surface flex-shrink-0">
           <BookOpen size={12} className="text-so-text-3 mr-2" />
           <span className="text-xxs text-so-text-3 uppercase tracking-wider">Page View</span>
+          <div className="flex items-center gap-2 ml-3">
+            <span className="text-xxs text-so-text-3 bg-so-active px-1.5 py-0.5 rounded">
+              {pageSize === 'letter' ? '8.5×11"' : 'A4'}
+            </span>
+          </div>
           <span className="ml-auto text-xxs text-so-text-3">
             {pages.length} {pages.length === 1 ? 'page' : 'pages'}
           </span>
@@ -183,13 +197,14 @@ export function PageView({ focusMode = false }: PageViewProps): React.JSX.Elemen
       )}
 
       {/* ── Page canvas ───────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto py-8 px-4" style={{ background: 'var(--so-bg)' }}>
+      <div className={`flex-1 overflow-y-auto py-8 px-4 ${canvasClasses}`} style={{ background: 'var(--so-bg)' }}>
         {pages.map((pageBlocks, idx) => (
           <div key={idx} className="mb-8">
             <ScreenplayPage
               blocks={pageBlocks}
               pageNumber={idx + 1}
               totalPages={pages.length}
+              showChrome={showPageChrome}
             />
           </div>
         ))}

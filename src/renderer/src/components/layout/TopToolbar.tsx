@@ -1,12 +1,12 @@
 /**
- * TopToolbar — Phase 5
+ * TopToolbar — Phase 6
  *
- * Added in Phase 5:
- *   - Semantic highlight toggle (Highlighter icon) with active state indicator
- *   - Highlight style toggle: minimal / vivid
- *   - Highlight intensity cycle: low → medium → high → low
- *
- * Keyboard shortcut: Ctrl+Shift+H — toggle semantic highlighting
+ * Phase 6 changes:
+ *   - Added Settings gear button (opens SettingsPanel slide-over)
+ *   - Added Command Palette trigger (Ctrl+P hint)
+ *   - Theme toggle now cycles dark → light → high-contrast → dark
+ *   - Semantic highlight controls moved to SettingsPanel; kept compact indicator
+ *   - Layout preset quick-switcher via icons in panel-toggle group
  */
 
 import React from 'react'
@@ -20,10 +20,12 @@ import {
   Grid3X3,
   PanelLeft,
   PanelRight,
-  Sun,
-  Moon,
   Maximize2,
-  Highlighter,
+  Settings,
+  Search,
+  Moon,
+  Sun,
+  Contrast,
 } from 'lucide-react'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useAppStore } from '../../store/appStore'
@@ -39,22 +41,24 @@ const VIEW_MODES: { id: ViewMode; label: string; icon: React.ReactNode; shortcut
   { id: 'board', label: 'Board View', icon: <Grid3X3 size={14} />,        shortcut: 'Ctrl+3' },
 ]
 
-/** Intensity display label */
-const INTENSITY_LABELS = { low: 'Low', medium: 'Medium', high: 'High' } as const
+function ThemeIcon({ theme }: { theme: string }) {
+  if (theme === 'dark') return <Moon size={15} />
+  if (theme === 'light') return <Sun size={15} />
+  return <Contrast size={15} />
+}
+
+function themeLabel(theme: string) {
+  if (theme === 'dark') return 'Light Mode'
+  if (theme === 'light') return 'High-Contrast Mode'
+  return 'Dark Mode'
+}
 
 export function TopToolbar(): React.JSX.Element {
   const { activeView, setActiveView, leftSidebarVisible, rightPanelVisible, toggleLeftSidebar, toggleRightPanel, focusMode, toggleFocusMode } =
     useLayoutStore()
   const { theme, toggleTheme } = useAppStore()
   const { isModified } = useProjectStore()
-  const {
-    semanticHighlight,
-    highlightStyle,
-    highlightIntensity,
-    toggleSemanticHighlight,
-    setHighlightStyle,
-    setHighlightIntensity,
-  } = useSettingsStore()
+  const { openSettingsPanel, openCommandPalette } = useSettingsStore()
 
   const handleNew = () => {
     console.log('[toolbar] new project')
@@ -75,15 +79,6 @@ export function TopToolbar(): React.JSX.Element {
     if (!window.api) return
     const result = await window.api.exportPDF({})
     console.log('[toolbar] export pdf:', result)
-  }
-
-  const cycleIntensity = () => {
-    const next = { low: 'medium', medium: 'high', high: 'low' } as const
-    setHighlightIntensity(next[highlightIntensity])
-  }
-
-  const toggleStyle = () => {
-    setHighlightStyle(highlightStyle === 'minimal' ? 'vivid' : 'minimal')
   }
 
   return (
@@ -163,7 +158,7 @@ export function TopToolbar(): React.JSX.Element {
           </IconButton>
         </Tooltip>
 
-        <Tooltip content={`Focus Mode (Ctrl+Shift+F)`} side="bottom">
+        <Tooltip content="Focus Mode (Ctrl+Shift+F)" side="bottom">
           <IconButton
             label="Focus Mode"
             active={focusMode}
@@ -176,59 +171,29 @@ export function TopToolbar(): React.JSX.Element {
 
       <Divider />
 
-      {/* Semantic highlighting controls */}
-      <div className="flex items-center gap-0.5">
-        <Tooltip
-          content={`Semantic Highlighting ${semanticHighlight ? 'On' : 'Off'} (Ctrl+Shift+H)`}
-          side="bottom"
-        >
-          <IconButton
-            label="Toggle Semantic Highlighting"
-            active={semanticHighlight}
-            onClick={toggleSemanticHighlight}
-          >
-            <Highlighter size={15} />
-          </IconButton>
-        </Tooltip>
-
-        {semanticHighlight && (
-          <>
-            <Tooltip
-              content={`Style: ${highlightStyle === 'minimal' ? 'Minimal (border)' : 'Vivid (background)'} — click to toggle`}
-              side="bottom"
-            >
-              <button
-                type="button"
-                onClick={toggleStyle}
-                className="h-6 px-1.5 text-xxs font-medium rounded text-so-text-3 hover:text-so-text-2 hover:bg-so-active transition-colors"
-              >
-                {highlightStyle === 'minimal' ? 'MIN' : 'VIV'}
-              </button>
-            </Tooltip>
-
-            <Tooltip
-              content={`Intensity: ${INTENSITY_LABELS[highlightIntensity]} — click to cycle`}
-              side="bottom"
-            >
-              <button
-                type="button"
-                onClick={cycleIntensity}
-                className="h-6 px-1.5 text-xxs font-medium rounded text-so-text-3 hover:text-so-text-2 hover:bg-so-active transition-colors"
-              >
-                {INTENSITY_LABELS[highlightIntensity][0]}
-              </button>
-            </Tooltip>
-          </>
-        )}
-      </div>
+      {/* Quick search / scene jump */}
+      <Tooltip content="Jump to Scene (Ctrl+P)" side="bottom">
+        <IconButton label="Jump to Scene" onClick={openCommandPalette}>
+          <Search size={15} />
+        </IconButton>
+      </Tooltip>
 
       {/* Spacer */}
       <div className="flex-1" />
 
-      {/* Theme toggle */}
-      <Tooltip content={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode (Ctrl+Shift+T)`} side="bottom">
+      {/* Theme cycle */}
+      <Tooltip content={`Switch to ${themeLabel(theme)}`} side="bottom">
         <IconButton label="Toggle Theme" onClick={toggleTheme}>
-          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          <ThemeIcon theme={theme} />
+        </IconButton>
+      </Tooltip>
+
+      <Divider />
+
+      {/* Settings */}
+      <Tooltip content="Settings (Ctrl+,)" side="bottom">
+        <IconButton label="Settings" onClick={openSettingsPanel}>
+          <Settings size={15} />
         </IconButton>
       </Tooltip>
     </div>

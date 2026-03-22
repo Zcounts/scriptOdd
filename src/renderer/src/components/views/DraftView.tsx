@@ -26,13 +26,17 @@ import { AutocompleteMenu } from '../../editor/AutocompleteMenu'
 import { SEM_REBUILD_META } from '../../editor/SemanticHighlightExtension'
 import { useSettingsStore } from '../../store/settingsStore'
 
+// Typography class maps — CSS variables are applied by these classes on the editor canvas
+const LINE_HEIGHT_CLASS = { normal: 'editor-lh-normal', relaxed: 'editor-lh-relaxed', spacious: 'editor-lh-spacious' } as const
+const FONT_SIZE_CLASS = { sm: 'editor-fontsize-sm', md: 'editor-fontsize-md', lg: 'editor-fontsize-lg' } as const
+
 interface DraftViewProps {
   focusMode?: boolean
 }
 
 export function DraftView({ focusMode = false }: DraftViewProps): React.JSX.Element {
   const editor = useScreenplayEditor()
-  const { semanticHighlight, highlightStyle, highlightIntensity } = useSettingsStore()
+  const { semanticHighlight, highlightStyle, highlightIntensity, editorFontSize, editorLineHeight } = useSettingsStore()
 
   // Re-trigger decoration rebuild when highlight settings change
   useEffect(() => {
@@ -41,11 +45,13 @@ export function DraftView({ focusMode = false }: DraftViewProps): React.JSX.Elem
     }
   }, [editor, semanticHighlight, highlightStyle, highlightIntensity])
 
-  // Compose CSS classes for the editor canvas — controls semantic color visibility
+  // Compose CSS classes for the editor canvas — controls semantic color visibility + typography
   const semClasses = [
     semanticHighlight ? 'sem-on' : 'sem-off',
     `sem-style-${highlightStyle}`,
     `sem-intensity-${highlightIntensity}`,
+    FONT_SIZE_CLASS[editorFontSize],
+    LINE_HEIGHT_CLASS[editorLineHeight],
   ].join(' ')
 
   return (

@@ -25,7 +25,10 @@ import { StatusBar } from './StatusBar'
 import { DraftView } from '../views/DraftView'
 import { PageView } from '../views/PageView'
 import { BoardView } from '../views/BoardView'
+import { SettingsPanel } from '../ui/SettingsPanel'
+import { CommandPalette } from '../ui/CommandPalette'
 import { useLayoutStore } from '../../store/layoutStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import { useKeyboard } from '../../hooks/useKeyboard'
 import { useScreenplayEditor } from '../../editor/ScreenplayEditorProvider'
 
@@ -90,6 +93,8 @@ export function AppShell(): React.JSX.Element {
     setRightPanelSize,
   } = useLayoutStore()
 
+  const { openSettingsPanel, openCommandPalette } = useSettingsStore()
+
   const editor = useScreenplayEditor()
 
   const handleNewScene = useCallback(() => {
@@ -120,6 +125,10 @@ export function AppShell(): React.JSX.Element {
     { key: 'Enter', modifiers: ['ctrl'],       handler: handleNewScene,   preventDefault: true },
     { key: 'ArrowDown', modifiers: ['alt'],    handler: handleNextScene,  preventDefault: true },
     { key: 'ArrowUp',   modifiers: ['alt'],    handler: handlePrevScene,  preventDefault: true },
+
+    // Phase 6: Command palette + Settings
+    { key: 'p', modifiers: ['ctrl'],            handler: openCommandPalette, preventDefault: true },
+    { key: ',', modifiers: ['ctrl'],            handler: openSettingsPanel,  preventDefault: true },
   ])
 
   const showLeft = leftSidebarVisible && !focusMode
@@ -192,6 +201,10 @@ export function AppShell(): React.JSX.Element {
 
       {/* Status bar — hidden in focus mode */}
       {!focusMode && <StatusBar />}
+
+      {/* Phase 6 overlays — rendered outside layout flow */}
+      <SettingsPanel />
+      <CommandPalette />
     </div>
   )
 }

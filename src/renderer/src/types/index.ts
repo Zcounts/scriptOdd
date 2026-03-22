@@ -2,7 +2,13 @@
 
 export type ViewMode = 'draft' | 'page' | 'board'
 
-export type Theme = 'dark' | 'light'
+export type Theme = 'dark' | 'light' | 'high-contrast'
+
+export type EditorFontSize = 'sm' | 'md' | 'lg'
+export type EditorLineHeight = 'normal' | 'relaxed' | 'spacious'
+export type PageSize = 'letter' | 'a4'
+export type PageMarginsPreset = 'compact' | 'standard' | 'wide'
+export type LayoutPresetName = 'default' | 'writer' | 'focus' | 'research'
 
 export type SidebarTab = 'navigator' | 'characters' | 'locations' | 'props'
 
