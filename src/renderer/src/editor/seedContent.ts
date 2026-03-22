@@ -12,10 +12,11 @@ function blk(
   text: string,
   id: string,
   sceneId: string | null = null,
+  sceneStart = false,
 ): JSONContent {
   return {
     type,
-    attrs: { id, sceneId, tags: [], noteIds: [] },
+    attrs: { id, sceneId, tags: [], noteIds: [], ...(type === 'sceneHeading' ? { sceneStart } : {}) },
     content: text ? [{ type: 'text', text }] : [],
   }
 }
@@ -23,7 +24,7 @@ function blk(
 export const seedContent: JSONContent = {
   type: 'doc',
   content: [
-    blk('sceneHeading', 'INT. COFFEE SHOP - DAY', 'sh-1', 'scene-1'),
+    blk('sceneHeading', 'INT. COFFEE SHOP - DAY', 'sh-1', 'scene-1', true),
 
     blk(
       'action',
@@ -56,7 +57,7 @@ export const seedContent: JSONContent = {
 
     // ── Scene 2 ──────────────────────────────────────────────────────────────
 
-    blk('sceneHeading', 'EXT. STREET - CONTINUOUS', 'sh-2', 'scene-2'),
+    blk('sceneHeading', 'EXT. STREET - CONTINUOUS', 'sh-2', 'scene-2', true),
 
     blk(
       'action',
@@ -78,7 +79,7 @@ export const seedContent: JSONContent = {
 
     // ── Scene 3 ──────────────────────────────────────────────────────────────
 
-    blk('sceneHeading', 'INT. MARA\'S APARTMENT - NIGHT', 'sh-3', 'scene-3'),
+    blk('sceneHeading', 'INT. MARA\'S APARTMENT - NIGHT', 'sh-3', 'scene-3', true),
 
     blk(
       'action',

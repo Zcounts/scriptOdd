@@ -514,6 +514,48 @@ body {
   margin-bottom: 0.25em;
 }
 
+/* ── Scene container: opening slugline ── */
+
+/* All scene-start headings need position: relative so the gutter widget can
+   be absolutely positioned into the left margin. */
+.screenplay-draft .ProseMirror .sp-scene-heading.scene-start {
+  position: relative;
+}
+
+/* Non-first scenes get a visual page-break separator above them. */
+.screenplay-draft .ProseMirror .sp-scene-heading.scene-break {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+}
+.screenplay-draft .ProseMirror .sp-scene-heading.scene-break::before {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 0;
+  left: -3rem;
+  right: -3rem;
+  border-top: 1px dashed var(--so-border);
+  opacity: 0.5;
+}
+
+/* Scene number badge — positioned in the left margin gutter */
+.scene-number-gutter {
+  position: absolute;
+  left: -2.75rem;
+  top: 0em;
+  min-width: 1.5rem;
+  text-align: right;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--so-text-3);
+  opacity: 0.75;
+  user-select: none;
+  pointer-events: none;
+  letter-spacing: 0.03em;
+  line-height: 1.7;
+}
+
 /* ── Action ── */
 .screenplay-draft .ProseMirror .sp-action,
 .sp-action {

@@ -1,14 +1,22 @@
 /**
- * sceneUtils — Phase 4
+ * sceneUtils — Phase 4 → Prompt 3 refactor
  *
  * Utilities for scene extraction, navigation, and document reordering.
  * Shared between ScreenplayEditorProvider, LeftSidebar, and BoardView.
  *
+ * Scene model (post Prompt 3):
+ *   - A Scene is a named container, created explicitly via Ctrl+Enter.
+ *   - A scene can hold one or more sceneHeading sluglines.
+ *   - The opening slugline carries attrs.sceneStart = true.
+ *   - All other sluglines within the same scene share the same sceneId but
+ *     have sceneStart = false (the default).
+ *   - deriveScenes() only creates a Scene entry for sceneStart = true headings.
+ *   - Backward compat: if a loaded document has no sceneStart = true headings
+ *     at all, every sceneHeading is treated as a scene start (old 1:1 mapping).
+ *
  * Scene ID strategy:
  *   - Seed content: sceneHeading.attrs.sceneId = 'scene-1' etc. → used as scene ID
- *   - User-created headings: attrs.sceneId = null → fall back to attrs.id
- *
- * This keeps backward compatibility with seed data while supporting new scenes.
+ *   - User-created headings: attrs.sceneId is the scene container UUID
  */
 
 import type { Editor, JSONContent } from '@tiptap/core'
@@ -42,28 +50,45 @@ export function sceneIdFromAttrs(attrs: Record<string, unknown> | undefined): st
 /**
  * Derive an ordered Scene[] from Tiptap JSON, preserving synopsis/color/noteIds
  * from the provided existingScenes map (keyed by scene ID).
+ *
+ * New model: only sceneHeadings with attrs.sceneStart === true open a new scene.
+ * Backward compat: if no block in the document carries sceneStart = true, every
+ * sceneHeading is treated as a scene start (preserves old 1:1 behaviour when
+ * loading documents created before this refactor).
  */
 export function deriveScenes(json: JSONContent, existingScenes: Scene[]): Scene[] {
   const blocks = json.content ?? []
   const existingMap = new Map(existingScenes.map((s) => [s.id, s]))
+
+  // Detect whether this document uses explicit scene starts (new model)
+  const hasExplicitSceneStarts = blocks.some(
+    (b) => b.type === 'sceneHeading' && (b.attrs as Record<string, unknown>)?.sceneStart === true,
+  )
+
   const scenes: Scene[] = []
   let order = 0
 
   for (const block of blocks) {
-    if (block.type === 'sceneHeading') {
-      const id = sceneIdFromAttrs(block.attrs as Record<string, unknown>)
-      if (!id) continue
-      const heading = extractText(block)
-      const existing = existingMap.get(id)
-      scenes.push({
-        id,
-        heading,
-        synopsis: existing?.synopsis ?? '',
-        color: existing?.color ?? null,
-        order: order++,
-        noteIds: existing?.noteIds ?? [],
-      })
-    }
+    if (block.type !== 'sceneHeading') continue
+
+    const attrs = block.attrs as Record<string, unknown>
+    const isSceneStart = hasExplicitSceneStarts ? attrs?.sceneStart === true : true
+
+    if (!isSceneStart) continue
+
+    const id = sceneIdFromAttrs(attrs)
+    if (!id) continue
+
+    const heading = extractText(block)
+    const existing = existingMap.get(id)
+    scenes.push({
+      id,
+      heading,
+      synopsis: existing?.synopsis ?? '',
+      color: existing?.color ?? null,
+      order: order++,
+      noteIds: existing?.noteIds ?? [],
+    })
   }
 
   return scenes
@@ -100,9 +125,13 @@ export function jumpToSceneById(editor: Editor, sceneId: string): void {
 /**
  * Reorder scenes in the editor document by rearranging scene block groups.
  *
- * Each "group" is a sceneHeading block followed by all blocks until the next
- * sceneHeading. Groups are rebuilt in the order specified by orderedIds.
- * Any blocks before the first scene heading are preserved at the top.
+ * A "group" is a sceneStart sceneHeading plus all blocks (including any
+ * additional non-sceneStart sluglines) until the next sceneStart heading.
+ * Groups are rebuilt in the order specified by orderedIds.
+ * Any blocks before the first sceneStart heading are preserved at the top.
+ *
+ * Backward compat: in documents without explicit sceneStart flags every
+ * sceneHeading is treated as a group boundary (old behaviour).
  *
  * Triggers onUpdate so the scene store stays in sync.
  */
@@ -110,19 +139,35 @@ export function reorderScenesInEditor(editor: Editor, orderedIds: string[]): voi
   const json = editor.getJSON()
   const blocks = json.content ?? []
 
-  // Build a map: sceneId → [sceneHeading, ...rest of scene blocks]
+  // Detect document model
+  const hasExplicitSceneStarts = blocks.some(
+    (b) => b.type === 'sceneHeading' && (b.attrs as Record<string, unknown>)?.sceneStart === true,
+  )
+
+  // Build a map: sceneId → [all blocks belonging to that scene]
   const groups = new Map<string, JSONContent[]>()
-  const prefix: JSONContent[] = [] // blocks before first scene heading
+  const prefix: JSONContent[] = [] // blocks before first scene group
   let currentId: string | null = null
 
   for (const block of blocks) {
     if (block.type === 'sceneHeading') {
-      const id = sceneIdFromAttrs(block.attrs as Record<string, unknown>)
-      currentId = id
-      if (id) {
+      const attrs = block.attrs as Record<string, unknown>
+      const id = sceneIdFromAttrs(attrs)
+      const isSceneStart = hasExplicitSceneStarts ? attrs?.sceneStart === true : true
+
+      if (isSceneStart && id) {
+        // Starts a new group
+        currentId = id
+        groups.set(id, [block])
+      } else if (currentId !== null && groups.has(currentId)) {
+        // Additional slugline within current scene group
+        groups.get(currentId)!.push(block)
+      } else if (id) {
+        // Orphan heading with resolvable ID — start a group
+        currentId = id
         groups.set(id, [block])
       } else {
-        prefix.push(block) // heading with no resolvable ID
+        prefix.push(block)
       }
     } else if (currentId !== null && groups.has(currentId)) {
       groups.get(currentId)!.push(block)

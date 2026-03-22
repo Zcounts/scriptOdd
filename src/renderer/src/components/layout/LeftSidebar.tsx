@@ -113,7 +113,7 @@ function NavigatorPanel(): React.JSX.Element {
       <EmptyState
         icon={<Film size={22} />}
         message="No scenes yet"
-        sub="Scenes appear here as you write scene headings."
+        sub="Press Ctrl+Enter to create your first scene."
       />
     )
   }
