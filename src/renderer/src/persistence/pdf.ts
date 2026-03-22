@@ -30,13 +30,138 @@ function extractBlockText(block: JSONContent): string {
   return ''
 }
 
+// ── Paginator (mirrors PageView splitIntoPages) ───────────────────────────────
+//
+// We pre-paginate so that (MORE) / (CONT'D) markers and explicit page-break
+// elements can be injected into the HTML at the correct positions.
+
+const LINES_PER_PAGE   = 55
+const CHARS_PER_DLG    = 35  // Courier New 12pt, 3.5" dialogue width
+const CHARS_PER_WIDE   = 60  // Courier New 12pt, 6" action/heading width
+
+interface MoreBlock  { type: 'more' }
+interface ContdBlock { type: 'contd'; charName: string }
+interface BreakBlock { type: 'pagebreak' }
+type PdfBlock = JSONContent | MoreBlock | ContdBlock | BreakBlock
+
+function estimatePdfLines(block: JSONContent): number {
+  const chars = extractBlockText(block).length
+  switch (block.type) {
+    case 'sceneHeading':  return Math.max(1, Math.ceil(chars / CHARS_PER_WIDE)) + 1
+    case 'action':        return Math.max(1, Math.ceil(chars / CHARS_PER_WIDE)) + 1
+    case 'character':     return 1
+    case 'dialogue':      return Math.max(1, Math.ceil(chars / CHARS_PER_DLG))
+    case 'parenthetical': return 1
+    case 'transition':    return 2
+    default:              return 1
+  }
+}
+
+function wrapDlg(text: string): string[] {
+  if (!text.trim()) return ['']
+  const words = text.split(/\s+/)
+  const lines: string[] = []
+  let cur = ''
+  for (const w of words) {
+    if (!cur) { cur = w }
+    else if (cur.length + 1 + w.length <= CHARS_PER_DLG) { cur += ' ' + w }
+    else { lines.push(cur); cur = w }
+  }
+  if (cur) lines.push(cur)
+  return lines.length ? lines : ['']
+}
+
+/**
+ * Pre-paginate screenplay blocks, inserting explicit page-break markers and
+ * (MORE)/(CONT'D) virtual blocks.  The output is a flat array ready for
+ * sequential HTML rendering; each BreakBlock becomes a CSS page-break.
+ */
+function paginateBlocks(content: JSONContent[]): PdfBlock[] {
+  const out: PdfBlock[] = []
+  let lines = 0
+  let lastCharName = ''
+  let isFirstPage = true
+
+  const breakPage = (): void => {
+    out.push({ type: 'pagebreak' } as BreakBlock)
+    lines = 0
+    isFirstPage = false
+  }
+
+  for (const block of content) {
+    if (block.type === 'note') continue
+
+    if (block.type === 'character') {
+      lastCharName = extractBlockText(block).toUpperCase()
+      // Anti-orphan: need room for character name + ≥2 dialogue lines
+      if (!isFirstPage && lines + 3 > LINES_PER_PAGE) {
+        breakPage()
+      }
+      out.push(block)
+      lines += 1
+      continue
+    }
+
+    if (block.type === 'dialogue') {
+      const text     = extractBlockText(block)
+      const dlgLines = wrapDlg(text)
+      const total    = dlgLines.length
+
+      if (lines + total <= LINES_PER_PAGE) {
+        out.push(block)
+        lines += total
+      } else {
+        const available = LINES_PER_PAGE - lines - 1 // -1 for (MORE)
+        if (available >= 2 && lastCharName) {
+          const firstText  = dlgLines.slice(0, available).join(' ')
+          const secondText = dlgLines.slice(available).join(' ')
+          out.push({ ...block, content: [{ type: 'text', text: firstText }] })
+          out.push({ type: 'more' } as MoreBlock)
+          breakPage()
+          out.push({ type: 'contd', charName: lastCharName } as ContdBlock)
+          out.push({ ...block, content: [{ type: 'text', text: secondText }] })
+          lines = 1 + Math.max(1, Math.ceil(secondText.length / CHARS_PER_DLG))
+        } else {
+          // Not enough room to split — move whole block to next page
+          breakPage()
+          if (lastCharName) {
+            out.push({ type: 'contd', charName: lastCharName } as ContdBlock)
+            lines = 1
+          }
+          out.push(block)
+          lines += total
+        }
+      }
+      continue
+    }
+
+    const estimate = estimatePdfLines(block)
+    if (!isFirstPage && lines + estimate > LINES_PER_PAGE) {
+      breakPage()
+    }
+    out.push(block)
+    lines += estimate
+  }
+
+  return out
+}
+
 // ── Block renderers ───────────────────────────────────────────────────────────
 
-function renderBlock(block: JSONContent): string {
-  const text = escHtml(extractBlockText(block))
-  if (!text.trim() && block.type !== 'action') return ''
+function renderBlock(block: PdfBlock): string {
+  // Virtual markers
+  if (block.type === 'pagebreak') return '<div class="page-break"></div>'
+  if (block.type === 'more')      return `<p class="character">(MORE)</p>`
+  if (block.type === 'contd') {
+    const b = block as ContdBlock
+    return `<p class="character">${escHtml(b.charName)} (CONT&#39;D)</p>`
+  }
 
-  switch (block.type) {
+  const b = block as JSONContent
+  const text = escHtml(extractBlockText(b))
+  if (!text.trim() && b.type !== 'action') return ''
+
+  switch (b.type) {
     case 'sceneHeading':
       return `<p class="scene-heading">${text || '&nbsp;'}</p>`
 
@@ -171,10 +296,10 @@ const CSS = `
     widows: 2;
   }
 
-  /* Scene heading: all caps, blank line before (via margin-top) */
+  /* Scene heading: all caps, 2 blank lines before (12pt top + 12pt from prev element) */
   .scene-heading {
     text-transform: uppercase;
-    margin-top: 24pt;
+    margin-top: 12pt;
     margin-bottom: 12pt;
     page-break-after: avoid;
     font-weight: normal;
@@ -195,11 +320,11 @@ const CSS = `
     width: 3.5in;
   }
 
-  /* Parenthetical: indented ~1.6" */
+  /* Parenthetical: 3.1"–5.9" from page left edge = 1.6" indent, 2.8" wide */
   .parenthetical {
     margin-left: 1.6in;
     margin-bottom: 0;
-    width: 2in;
+    width: 2.8in;
   }
 
   /* Dialogue: indented ~1in, width ~3.5in */
@@ -217,20 +342,11 @@ const CSS = `
     margin-bottom: 12pt;
   }
 
-  /* Page numbers — printed via CSS counter */
-  @page {
-    @top-right {
-      content: counter(page) '.';
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 12pt;
-    }
-  }
+  /* Page numbers are injected by Electron's displayHeaderFooter option in fileHandlers.ts */
 
-  /* First page has no page number */
-  @page :first {
-    @top-right {
-      content: '';
-    }
+  /* Keep dialogue/parenthetical attached to the character name above */
+  .dialogue, .parenthetical {
+    page-break-before: avoid;
   }
 `
 
@@ -243,8 +359,9 @@ const CSS = `
 export function buildPdfHtml(json: JSONContent, meta?: ProjectMeta): string {
   const hasMeta = Boolean(meta?.title && meta.title !== 'Untitled')
 
-  const blocks = json.content ?? []
-  const bodyBlocks = blocks.map(renderBlock).filter(Boolean).join('\n')
+  const rawBlocks = json.content ?? []
+  const paginatedBlocks = paginateBlocks(rawBlocks)
+  const bodyBlocks = paginatedBlocks.map(renderBlock).filter(Boolean).join('\n')
 
   const titlePageHtml = hasMeta && meta ? renderTitlePage(meta) : ''
 

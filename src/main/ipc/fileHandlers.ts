@@ -146,9 +146,25 @@ export function registerFileHandlers(): void {
 
         await pdfWin.loadFile(tmpHtml)
 
+        // Page number: top-right, 0.5" from top, 1" from right, Courier New 12pt.
+        // Chromium does not implement CSS @page margin boxes (@top-right), so we
+        // use displayHeaderFooter instead.  CSS @page margins in the HTML still
+        // control the content area; marginType:'none' lets those CSS rules win.
+        const pageNumHeader =
+          `<div style="width:100%;` +
+          `font-family:'Courier New',Courier,monospace;` +
+          `font-size:12pt;color:#000;` +
+          `-webkit-print-color-adjust:exact;print-color-adjust:exact;` +
+          `text-align:right;padding-top:0.4in;padding-right:1in;">` +
+          `<span class="pageNumber"></span>.` +
+          `</div>`
+
         const pdfBuffer = await pdfWin.webContents.printToPDF({
           pageSize: 'Letter',
           printBackground: false,
+          displayHeaderFooter: true,
+          headerTemplate: pageNumHeader,
+          footerTemplate: '<div></div>',
           margins: { marginType: 'none' },
         })
 
