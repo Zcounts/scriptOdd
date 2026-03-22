@@ -4,7 +4,7 @@ export type ViewMode = 'draft' | 'page' | 'board'
 
 export type Theme = 'dark' | 'light'
 
-export type SidebarTab = 'navigator' | 'characters' | 'locations'
+export type SidebarTab = 'navigator' | 'characters' | 'locations' | 'props'
 
 export type RightPanelTab = 'notes' | 'outline' | 'board'
 

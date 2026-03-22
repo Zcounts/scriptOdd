@@ -281,6 +281,101 @@ body {
   background: rgba(124, 92, 191, 0.35);
 }
 
+/* ── Semantic Highlighting — Phase 5 ─────────────────────────────────────── */
+/*
+ * Eight character colors and six location colors, stored as RGB component
+ * triplets so we can vary opacity via rgba().
+ *
+ * Applied via classes sem-char-N and sem-loc-N added as ProseMirror decorations
+ * (SemanticHighlightExtension). Visibility controlled by .sem-on on the
+ * editor canvas. Style controlled by .sem-style-minimal / .sem-style-vivid.
+ * Intensity controlled by .sem-intensity-* which sets --sem-bg-alpha.
+ */
+
+:root {
+  /* Character palette (RGB triplets for rgba() composition) */
+  --sem-char-0-rgb: 245, 158, 11;   /* amber  */
+  --sem-char-1-rgb: 96,  165, 250;  /* blue   */
+  --sem-char-2-rgb: 52,  211, 153;  /* emerald */
+  --sem-char-3-rgb: 167, 139, 250;  /* violet */
+  --sem-char-4-rgb: 45,  212, 191;  /* teal   */
+  --sem-char-5-rgb: 251, 113, 133;  /* rose   */
+  --sem-char-6-rgb: 253, 230, 138;  /* yellow */
+  --sem-char-7-rgb: 103, 232, 249;  /* cyan   */
+
+  /* Location palette (RGB triplets) */
+  --sem-loc-0-rgb: 147, 197, 253;   /* blue   */
+  --sem-loc-1-rgb: 134, 239, 172;   /* green  */
+  --sem-loc-2-rgb: 253, 186, 116;   /* orange */
+  --sem-loc-3-rgb: 216, 180, 254;   /* purple */
+  --sem-loc-4-rgb: 103, 232, 249;   /* cyan   */
+  --sem-loc-5-rgb: 249, 168, 212;   /* pink   */
+
+  /* Default intensity for the vivid background */
+  --sem-bg-alpha: 0.13;
+}
+
+/* Intensity variants */
+.sem-intensity-low    { --sem-bg-alpha: 0.07; }
+.sem-intensity-medium { --sem-bg-alpha: 0.13; }
+.sem-intensity-high   { --sem-bg-alpha: 0.24; }
+
+/* ── Color swatch helpers (used in sidebar lists) ───────────────────────── */
+/* Character swatches */
+.sem-swatch-char-0 { background: rgba(var(--sem-char-0-rgb), 0.85); }
+.sem-swatch-char-1 { background: rgba(var(--sem-char-1-rgb), 0.85); }
+.sem-swatch-char-2 { background: rgba(var(--sem-char-2-rgb), 0.85); }
+.sem-swatch-char-3 { background: rgba(var(--sem-char-3-rgb), 0.85); }
+.sem-swatch-char-4 { background: rgba(var(--sem-char-4-rgb), 0.85); }
+.sem-swatch-char-5 { background: rgba(var(--sem-char-5-rgb), 0.85); }
+.sem-swatch-char-6 { background: rgba(var(--sem-char-6-rgb), 0.85); }
+.sem-swatch-char-7 { background: rgba(var(--sem-char-7-rgb), 0.85); }
+
+/* Location swatches */
+.sem-swatch-loc-0 { background: rgba(var(--sem-loc-0-rgb), 0.85); }
+.sem-swatch-loc-1 { background: rgba(var(--sem-loc-1-rgb), 0.85); }
+.sem-swatch-loc-2 { background: rgba(var(--sem-loc-2-rgb), 0.85); }
+.sem-swatch-loc-3 { background: rgba(var(--sem-loc-3-rgb), 0.85); }
+.sem-swatch-loc-4 { background: rgba(var(--sem-loc-4-rgb), 0.85); }
+.sem-swatch-loc-5 { background: rgba(var(--sem-loc-5-rgb), 0.85); }
+
+/* ── Minimal style: colored left border on character cue blocks ──────────── */
+/* Only active when .sem-on is on a container ancestor of the editor         */
+
+.sem-on .sem-char-0 { border-left: 3px solid rgba(var(--sem-char-0-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+.sem-on .sem-char-1 { border-left: 3px solid rgba(var(--sem-char-1-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+.sem-on .sem-char-2 { border-left: 3px solid rgba(var(--sem-char-2-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+.sem-on .sem-char-3 { border-left: 3px solid rgba(var(--sem-char-3-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+.sem-on .sem-char-4 { border-left: 3px solid rgba(var(--sem-char-4-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+.sem-on .sem-char-5 { border-left: 3px solid rgba(var(--sem-char-5-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+.sem-on .sem-char-6 { border-left: 3px solid rgba(var(--sem-char-6-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+.sem-on .sem-char-7 { border-left: 3px solid rgba(var(--sem-char-7-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+
+/* Scene headings: subtle left accent bar in location color */
+.sem-on .sem-loc-0 { border-left: 3px solid rgba(var(--sem-loc-0-rgb), 0.55) !important; padding-left: 4px !important; }
+.sem-on .sem-loc-1 { border-left: 3px solid rgba(var(--sem-loc-1-rgb), 0.55) !important; padding-left: 4px !important; }
+.sem-on .sem-loc-2 { border-left: 3px solid rgba(var(--sem-loc-2-rgb), 0.55) !important; padding-left: 4px !important; }
+.sem-on .sem-loc-3 { border-left: 3px solid rgba(var(--sem-loc-3-rgb), 0.55) !important; padding-left: 4px !important; }
+.sem-on .sem-loc-4 { border-left: 3px solid rgba(var(--sem-loc-4-rgb), 0.55) !important; padding-left: 4px !important; }
+.sem-on .sem-loc-5 { border-left: 3px solid rgba(var(--sem-loc-5-rgb), 0.55) !important; padding-left: 4px !important; }
+
+/* ── Vivid style: adds a background tint in addition to the border ───────── */
+.sem-on.sem-style-vivid .sem-char-0 { background: rgba(var(--sem-char-0-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-char-1 { background: rgba(var(--sem-char-1-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-char-2 { background: rgba(var(--sem-char-2-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-char-3 { background: rgba(var(--sem-char-3-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-char-4 { background: rgba(var(--sem-char-4-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-char-5 { background: rgba(var(--sem-char-5-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-char-6 { background: rgba(var(--sem-char-6-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-char-7 { background: rgba(var(--sem-char-7-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+
+.sem-on.sem-style-vivid .sem-loc-0 { background: rgba(var(--sem-loc-0-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-loc-1 { background: rgba(var(--sem-loc-1-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-loc-2 { background: rgba(var(--sem-loc-2-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-loc-3 { background: rgba(var(--sem-loc-3-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-loc-4 { background: rgba(var(--sem-loc-4-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-loc-5 { background: rgba(var(--sem-loc-5-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
+
 /* ── Page View — screenplay page blocks ───────────────────────────────────── */
 
 .page-view-scene-heading {

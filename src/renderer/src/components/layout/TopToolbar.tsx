@@ -1,3 +1,14 @@
+/**
+ * TopToolbar — Phase 5
+ *
+ * Added in Phase 5:
+ *   - Semantic highlight toggle (Highlighter icon) with active state indicator
+ *   - Highlight style toggle: minimal / vivid
+ *   - Highlight intensity cycle: low → medium → high → low
+ *
+ * Keyboard shortcut: Ctrl+Shift+H — toggle semantic highlighting
+ */
+
 import React from 'react'
 import {
   FilePlus,
@@ -12,10 +23,12 @@ import {
   Sun,
   Moon,
   Maximize2,
+  Highlighter,
 } from 'lucide-react'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useAppStore } from '../../store/appStore'
 import { useProjectStore } from '../../store/projectStore'
+import { useSettingsStore } from '../../store/settingsStore'
 import { IconButton } from '../ui/IconButton'
 import { Tooltip } from '../ui/Tooltip'
 import type { ViewMode } from '../../types'
@@ -26,11 +39,22 @@ const VIEW_MODES: { id: ViewMode; label: string; icon: React.ReactNode; shortcut
   { id: 'board', label: 'Board View', icon: <Grid3X3 size={14} />,        shortcut: 'Ctrl+3' },
 ]
 
+/** Intensity display label */
+const INTENSITY_LABELS = { low: 'Low', medium: 'Medium', high: 'High' } as const
+
 export function TopToolbar(): React.JSX.Element {
   const { activeView, setActiveView, leftSidebarVisible, rightPanelVisible, toggleLeftSidebar, toggleRightPanel, focusMode, toggleFocusMode } =
     useLayoutStore()
   const { theme, toggleTheme } = useAppStore()
   const { isModified } = useProjectStore()
+  const {
+    semanticHighlight,
+    highlightStyle,
+    highlightIntensity,
+    toggleSemanticHighlight,
+    setHighlightStyle,
+    setHighlightIntensity,
+  } = useSettingsStore()
 
   const handleNew = () => {
     console.log('[toolbar] new project')
@@ -51,6 +75,15 @@ export function TopToolbar(): React.JSX.Element {
     if (!window.api) return
     const result = await window.api.exportPDF({})
     console.log('[toolbar] export pdf:', result)
+  }
+
+  const cycleIntensity = () => {
+    const next = { low: 'medium', medium: 'high', high: 'low' } as const
+    setHighlightIntensity(next[highlightIntensity])
+  }
+
+  const toggleStyle = () => {
+    setHighlightStyle(highlightStyle === 'minimal' ? 'vivid' : 'minimal')
   }
 
   return (
@@ -139,6 +172,54 @@ export function TopToolbar(): React.JSX.Element {
             <Maximize2 size={15} />
           </IconButton>
         </Tooltip>
+      </div>
+
+      <Divider />
+
+      {/* Semantic highlighting controls */}
+      <div className="flex items-center gap-0.5">
+        <Tooltip
+          content={`Semantic Highlighting ${semanticHighlight ? 'On' : 'Off'} (Ctrl+Shift+H)`}
+          side="bottom"
+        >
+          <IconButton
+            label="Toggle Semantic Highlighting"
+            active={semanticHighlight}
+            onClick={toggleSemanticHighlight}
+          >
+            <Highlighter size={15} />
+          </IconButton>
+        </Tooltip>
+
+        {semanticHighlight && (
+          <>
+            <Tooltip
+              content={`Style: ${highlightStyle === 'minimal' ? 'Minimal (border)' : 'Vivid (background)'} — click to toggle`}
+              side="bottom"
+            >
+              <button
+                type="button"
+                onClick={toggleStyle}
+                className="h-6 px-1.5 text-xxs font-medium rounded text-so-text-3 hover:text-so-text-2 hover:bg-so-active transition-colors"
+              >
+                {highlightStyle === 'minimal' ? 'MIN' : 'VIV'}
+              </button>
+            </Tooltip>
+
+            <Tooltip
+              content={`Intensity: ${INTENSITY_LABELS[highlightIntensity]} — click to cycle`}
+              side="bottom"
+            >
+              <button
+                type="button"
+                onClick={cycleIntensity}
+                className="h-6 px-1.5 text-xxs font-medium rounded text-so-text-3 hover:text-so-text-2 hover:bg-so-active transition-colors"
+              >
+                {INTENSITY_LABELS[highlightIntensity][0]}
+              </button>
+            </Tooltip>
+          </>
+        )}
       </div>
 
       {/* Spacer */}
