@@ -423,7 +423,8 @@ body {
 .screenplay-page {
   background: linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.06)), var(--so-paper);
   color: var(--so-text-on-paper);
-  font-family: var(--font-screenplay);
+  /* Spec: Courier New 12pt, no substitutions */
+  font-family: 'Courier New', Courier, monospace;
   font-size: 12pt;
   line-height: 1;
   width: var(--page-width);
@@ -686,7 +687,8 @@ body {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  margin-top: 1.05em;
+  /* 1em here + 1em from prev element's margin-bottom = 2 blank lines before scene heading */
+  margin-top: 1em;
   margin-bottom: 0;
 }
 
@@ -705,14 +707,16 @@ body {
 }
 
 .page-view-dialogue {
-  margin-left: 1.5in;
+  /* Spec: dialogue 2.5"–6.0" from page left = 1.0" indent inside content area, right edge at 6.0" */
+  margin-left: 1.0in;
   margin-right: 1.5in;
   margin-bottom: 0;
 }
 
 .page-view-parenthetical {
-  margin-left: 1.8in;
-  margin-right: 2in;
+  /* Spec: parenthetical 3.1"–5.9" from page left = 1.6" indent, right edge at 5.9" */
+  margin-left: 1.6in;
+  margin-right: 1.6in;
   margin-bottom: 0;
   color: var(--so-text-on-paper-muted);
 }
