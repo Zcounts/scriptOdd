@@ -1,9 +1,11 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-
 /**
- * Typed IPC bridge exposed to the renderer as `window.api`.
+ * preload/index.ts — Phase 7
+ *
+ * Secure IPC bridge exposed to the renderer as `window.api`.
  * No raw Node.js or Electron APIs are exposed — only the exact channels needed.
  */
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+
 const api = {
   // ── File operations ──────────────────────────────────────────────────────
   openProject: () =>
@@ -15,12 +17,26 @@ const api = {
   saveProjectAs: (payload: { data: string }) =>
     ipcRenderer.invoke('file:save-project-as', payload) as Promise<SaveResult>,
 
-  exportPDF: (payload: unknown) =>
+  exportPDF: (payload: { html: string; title?: string }) =>
     ipcRenderer.invoke('file:export-pdf', payload) as Promise<ExportResult>,
+
+  exportFountain: (payload: { data: string; title?: string }) =>
+    ipcRenderer.invoke('file:export-fountain', payload) as Promise<ExportResult>,
+
+  // ── Crash recovery ────────────────────────────────────────────────────────
+  writeCrashRecovery: (payload: { data: string }) =>
+    ipcRenderer.invoke('file:write-crash-recovery', payload) as Promise<{ success: boolean; error?: string }>,
+
+  readCrashRecovery: () =>
+    ipcRenderer.invoke('file:read-crash-recovery') as Promise<{ success: boolean; data?: string }>,
+
+  deleteCrashRecovery: () =>
+    ipcRenderer.invoke('file:delete-crash-recovery') as Promise<{ success: boolean }>,
 
   // ── App info ─────────────────────────────────────────────────────────────
   getVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
   getPlatform: () => ipcRenderer.invoke('app:get-platform') as Promise<string>,
+  getUserDataPath: () => ipcRenderer.invoke('file:get-user-data-path') as Promise<string>,
 
   // ── Window controls ───────────────────────────────────────────────────────
   minimizeWindow: () => ipcRenderer.send('window:minimize'),

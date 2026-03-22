@@ -1,6 +1,8 @@
 /**
  * Type declarations for the secure IPC bridge exposed by the preload script.
  * These mirror the implementation in src/preload/index.ts.
+ *
+ * Phase 7: added exportFountain, crash-recovery channels, getUserDataPath.
  */
 
 interface OpenProjectResult {
@@ -39,11 +41,18 @@ interface AppAPI {
   openProject: () => Promise<OpenProjectResult>
   saveProject: (payload: SavePayload) => Promise<SaveResult>
   saveProjectAs: (payload: { data: string }) => Promise<SaveResult>
-  exportPDF: (payload: unknown) => Promise<ExportResult>
+  exportPDF: (payload: { html: string; title?: string }) => Promise<ExportResult>
+  exportFountain: (payload: { data: string; title?: string }) => Promise<ExportResult>
+
+  // Crash recovery
+  writeCrashRecovery: (payload: { data: string }) => Promise<{ success: boolean; error?: string }>
+  readCrashRecovery: () => Promise<{ success: boolean; data?: string }>
+  deleteCrashRecovery: () => Promise<{ success: boolean }>
 
   // App info
   getVersion: () => Promise<string>
   getPlatform: () => Promise<string>
+  getUserDataPath: () => Promise<string>
 
   // Window controls
   minimizeWindow: () => void

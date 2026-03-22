@@ -77,7 +77,7 @@ export function TopToolbar(): React.JSX.Element {
 
   const handleExportPDF = async () => {
     if (!window.api) return
-    const result = await window.api.exportPDF({})
+    const result = await window.api.exportPDF({ html: '' })
     console.log('[toolbar] export pdf:', result)
   }
 

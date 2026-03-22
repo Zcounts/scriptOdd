@@ -1,5 +1,5 @@
 /**
- * ScreenplayEditorProvider — Phase 5
+ * ScreenplayEditorProvider — Phase 7
  *
  * Creates and manages the singleton Tiptap editor instance.
  * Mounted at the App level so the editor state survives view switches.
@@ -11,12 +11,19 @@
  *     the SemanticHighlightExtension rebuilds its decorations with fresh colors.
  *   - SemanticHighlightExtension added to the editor extension list.
  *
+ * Phase 7 additions:
+ *   - pendingLoad: editor watches documentStore.pendingLoad; when set, calls
+ *     editor.commands.setContent() and clears the flag.  This is how project
+ *     open / Fountain import / crash recovery hydrates the editor.
+ *   - markModified: each document change marks the project store as modified.
+ *   - Autosave timer: saves every autosaveIntervalMs if autosaveEnabled.
+ *
  * Usage:
  *   - Wrap <AppShell> with <ScreenplayEditorProvider>
  *   - Access editor via useScreenplayEditor() anywhere in the tree
  */
 
-import React, { createContext, useContext, useCallback } from 'react'
+import React, { createContext, useContext, useCallback, useEffect, useRef } from 'react'
 import { useEditor } from '@tiptap/react'
 import type { Editor, JSONContent } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
@@ -28,6 +35,7 @@ import { seedContent, SEED_SCENES } from './seedContent'
 import { deriveScenes, activeSceneAtPos } from './sceneUtils'
 import { useDocumentStore } from '../store/documentStore'
 import { useAutocompleteStore } from '../store/autocompleteStore'
+import { useProjectStore } from '../store/projectStore'
 
 // ── Context ───────────────────────────────────────────────────────────────────
 
@@ -41,6 +49,7 @@ export function useScreenplayEditor(): Editor | null {
 
 interface ScreenplayEditorProviderProps {
   children: React.ReactNode
+  onAutosave?: () => Promise<void>
 }
 
 /** Strip annotation suffixes like (V.O.), (O.S.), (CONT'D) from character names */
@@ -68,8 +77,10 @@ function extractEntities(json: JSONContent): void {
   }
 }
 
-export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderProps): React.JSX.Element {
+export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEditorProviderProps): React.JSX.Element {
   const { setEditorContent, setStats, initScenes, setActiveScene, setCursor } = useDocumentStore()
+  const autosaveRef = useRef(onAutosave)
+  autosaveRef.current = onAutosave
 
   // ── Called on every document change ────────────────────────────────────────
   const handleUpdate = useCallback(
@@ -86,7 +97,6 @@ export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderP
       extractEntities(json)
 
       // Signal the semantic highlight plugin to rebuild decorations
-      // (needed because entity color maps may have changed)
       ed.view.dispatch(ed.state.tr.setMeta(SEM_REBUILD_META, true))
 
       // Live stats
@@ -95,6 +105,9 @@ export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderP
       const blockCount = json.content?.length ?? 0
       const pageCount = Math.max(1, Math.ceil(blockCount / 22))
       setStats({ wordCount, pageCount, sceneCount: scenes.length })
+
+      // Mark project as modified (Phase 7)
+      useProjectStore.getState().markModified()
     },
     [setEditorContent, setStats, initScenes],
   )
@@ -157,6 +170,40 @@ export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderP
       setStats({ wordCount, sceneCount: scenes.length, pageCount: Math.max(1, Math.ceil(blockCount / 22)) })
     },
   })
+
+  // ── pendingLoad: hydrate editor from project open / crash recovery ──────────
+  const pendingLoad = useDocumentStore((s) => s.pendingLoad)
+
+  useEffect(() => {
+    if (!editor || !pendingLoad) return
+
+    // Apply content (this triggers onUpdate which re-derives scenes + entities)
+    editor.commands.setContent(pendingLoad)
+
+    // Clear the pending flag
+    useDocumentStore.getState().setPendingLoad(null)
+
+    // After loading a project the content is clean
+    useProjectStore.getState().markSaved(useProjectStore.getState().filePath ?? '')
+  }, [editor, pendingLoad])
+
+  // ── Autosave timer ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const getConfig = () => {
+      const { autosaveEnabled, autosaveIntervalMs } = useProjectStore.getState()
+      return { autosaveEnabled, autosaveIntervalMs }
+    }
+
+    const runAutosave = () => {
+      autosaveRef.current?.().catch((e) => console.error('[autosave]', e))
+    }
+
+    const { autosaveEnabled, autosaveIntervalMs } = getConfig()
+    if (!autosaveEnabled) return
+
+    const id = setInterval(runAutosave, autosaveIntervalMs)
+    return () => clearInterval(id)
+  }, []) // runs once; timer reads current store state on each tick
 
   return (
     <ScreenplayEditorContext.Provider value={editor}>
