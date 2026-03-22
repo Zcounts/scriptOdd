@@ -260,7 +260,7 @@ export function SettingsPanel() {
       {/* Panel */}
       <div
         ref={panelRef}
-        className="relative flex flex-col h-full w-72 bg-so-surface border-l border-so-border shadow-2xl overflow-y-auto"
+        className="relative flex flex-col h-full w-[540px] bg-so-surface border-l border-so-border shadow-2xl overflow-y-auto"
         style={{ animation: 'slide-in-right 0.2s ease' }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -419,6 +419,62 @@ export function SettingsPanel() {
         <OptionRow label="Page Chrome">
           <Toggle checked={showPageChrome} onChange={toggleShowPageChrome} />
         </OptionRow>
+
+        <SectionDivider />
+
+        {/* ── Keyboard Shortcuts ─────────────────────────────────────────────── */}
+        <SectionHeader>Keyboard Shortcuts</SectionHeader>
+
+        <div className="px-5 pb-5 grid grid-cols-2 gap-x-6 gap-y-0">
+          {/* Column 1 — Editor */}
+          <div>
+            <p className="text-xxs font-semibold uppercase tracking-widest text-so-text-3 mb-1.5">Editor</p>
+            <table className="w-full text-xs border-collapse">
+              <tbody>
+                {[
+                  ['Enter',        'Advance block'],
+                  ['Tab',          'Cycle type forward'],
+                  ['Shift+Tab',    'Cycle type backward'],
+                  ['/',            'Block type menu'],
+                  ['Ctrl+Enter',   'New scene heading'],
+                  ['Alt+↓',        'Next scene'],
+                  ['Alt+↑',        'Previous scene'],
+                  ['Ctrl+Z',       'Undo'],
+                  ['Ctrl+Y',       'Redo'],
+                ].map(([key, action]) => (
+                  <tr key={key} className="border-b border-so-border-dim last:border-0">
+                    <td className="py-1 pr-3 text-so-text font-mono text-xxs whitespace-nowrap">{key}</td>
+                    <td className="py-1 text-so-text-2">{action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Column 2 — App */}
+          <div>
+            <p className="text-xxs font-semibold uppercase tracking-widest text-so-text-3 mb-1.5">App</p>
+            <table className="w-full text-xs border-collapse">
+              <tbody>
+                {[
+                  ['Ctrl+1',         'Draft view'],
+                  ['Ctrl+2',         'Page view'],
+                  ['Ctrl+3',         'Board view'],
+                  ['Ctrl+\\',        'Toggle navigator'],
+                  ['Ctrl+Shift+\\',  'Toggle notes panel'],
+                  ['Ctrl+Shift+F',   'Focus mode'],
+                  ['Ctrl+P',         'Jump to scene'],
+                  ['Ctrl+,',         'Settings'],
+                ].map(([key, action]) => (
+                  <tr key={key} className="border-b border-so-border-dim last:border-0">
+                    <td className="py-1 pr-3 text-so-text font-mono text-xxs whitespace-nowrap">{key}</td>
+                    <td className="py-1 text-so-text-2">{action}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
         {/* Bottom spacer */}
         <div className="flex-1 min-h-6" />

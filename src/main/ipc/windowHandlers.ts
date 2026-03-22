@@ -1,21 +1,21 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, IpcMainEvent } from 'electron'
 
 export function registerWindowHandlers(): void {
-  ipcMain.on('window:minimize', () => {
-    BrowserWindow.getFocusedWindow()?.minimize()
+  ipcMain.on('window:minimize', (event: IpcMainEvent) => {
+    BrowserWindow.fromWebContents(event.sender)?.minimize()
   })
 
-  ipcMain.on('window:maximize', () => {
-    const win = BrowserWindow.getFocusedWindow()
+  ipcMain.on('window:maximize', (event: IpcMainEvent) => {
+    const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return
     win.isMaximized() ? win.unmaximize() : win.maximize()
   })
 
-  ipcMain.on('window:close', () => {
-    BrowserWindow.getFocusedWindow()?.close()
+  ipcMain.on('window:close', (event: IpcMainEvent) => {
+    BrowserWindow.fromWebContents(event.sender)?.close()
   })
 
-  ipcMain.handle('window:is-maximized', () => {
-    return BrowserWindow.getFocusedWindow()?.isMaximized() ?? false
+  ipcMain.handle('window:is-maximized', (event) => {
+    return BrowserWindow.fromWebContents(event.sender)?.isMaximized() ?? false
   })
 }

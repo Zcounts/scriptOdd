@@ -47,10 +47,6 @@ export function DraftView({ focusMode = false }: DraftViewProps): React.JSX.Elem
           {editor && <BlockTypePicker editor={editor} />}
 
           <div className="flex-1" />
-
-          <span className="text-[11px] uppercase tracking-[0.18em] text-so-text-3 select-none hidden xl:block">
-            Enter advance · Tab cycle type · / command · Ctrl+Z undo
-          </span>
         </div>
       )}
 
