@@ -1,31 +1,27 @@
 name: Release
 
-# Triggers:
-#   - workflow_dispatch       → full build only (no release created)
-#   - Pushed version tags (v*) → full build + GitHub Release
 on:
   workflow_dispatch:
   push:
     tags:
       - 'v*'
 
-# Default to read-only; the release job elevates to write for asset upload.
+# Minimal default — only the release job elevates to write
 permissions:
   contents: read
 
 jobs:
-  # ── 1. Verify ──────────────────────────────────────────────────────────────
+  # ── 1. Verify ─────────────────────────────────────────────────────────────
   verify:
-    name: Verify (typecheck + tests)
+    name: Verify
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
@@ -36,142 +32,90 @@ jobs:
       - name: Run tests
         run: npm run test
 
-  # ── 2. Build Windows installer ─────────────────────────────────────────────
+  # ── 2a. Build Windows installer ──────────────────────────────────────────
   build-windows:
-    name: Build Windows installer
-    runs-on: windows-latest
+    name: Build (Windows)
     needs: verify
-
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build Windows installer
         run: npm run dist:win
-        env:
-          # Prevents electron-builder from attempting to publish to GitHub
-          # during the build step — release upload is handled separately.
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          # Matches: scriptOdd-Setup-<version>.exe (per artifactName in package.json)
           path: dist/*.exe
-          retention-days: 7
           if-no-files-found: error
+          retention-days: 1
 
-  # ── 3. Build macOS DMG ─────────────────────────────────────────────────────
+  # ── 2b. Build macOS DMG (runs in parallel with Windows) ──────────────────
   build-mac:
-    name: Build macOS DMG
-    runs-on: macos-latest
+    name: Build (macOS)
     needs: verify
-
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build macOS DMG
-        # NOTE: This produces unsigned, unnotarized DMGs.
-        # macOS Gatekeeper will block launch for users who downloaded from the
-        # internet unless the app is signed and notarized with an Apple
-        # Developer ID certificate. See RELEASE_CHECKLIST.md for details.
         run: npm run dist:mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Suppress codesign attempts when no certificate is configured
-          CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      - name: Upload macOS artifacts
+      - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mac-installers
-          # Matches: scriptOdd-<version>-x64.dmg and scriptOdd-<version>-arm64.dmg
+          name: mac-dmg
           path: dist/*.dmg
-          retention-days: 7
           if-no-files-found: error
+          retention-days: 1
 
-  # ── 4. Create GitHub Release (tag builds only) ─────────────────────────────
+  # ── 3. Create GitHub Release (only on tag pushes) ────────────────────────
   release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
+    name: Release
     needs: [build-windows, build-mac]
-    # Only run on version tag pushes, not on workflow_dispatch
+    runs-on: ubuntu-latest
+    # Skip this job on workflow_dispatch (no tag = no release to publish)
     if: startsWith(github.ref, 'refs/tags/v')
-
     permissions:
-      contents: write  # required to create releases and upload assets
+      contents: write   # Elevated only for this job
 
     steps:
-      - name: Download Windows installer
+      - name: Download Windows artifact
         uses: actions/download-artifact@v4
         with:
           name: windows-installer
-          path: artifacts/windows
+          path: dist
 
-      - name: Download macOS installers
+      - name: Download macOS artifact
         uses: actions/download-artifact@v4
         with:
-          name: mac-installers
-          path: artifacts/mac
-
-      - name: List artifacts
-        run: find artifacts -type f | sort
+          name: mac-dmg
+          path: dist
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: scriptOdd ${{ github.ref_name }}
-          draft: true
-          prerelease: false
+          draft: true          # Publishes as draft — you review before making it live
           generate_release_notes: true
-          body: |
-            ## scriptOdd ${{ github.ref_name }}
-
-            Local-only desktop screenwriting app for feature films.
-
-            ### Downloads
-
-            | Platform | File | Notes |
-            |----------|------|-------|
-            | Windows 10/11 x64 | `scriptOdd-Setup-*.exe` | NSIS installer, per-user, no admin required |
-            | macOS x64 | `scriptOdd-*-x64.dmg` | **Unsigned** — see note below |
-            | macOS Apple Silicon | `scriptOdd-*-arm64.dmg` | **Unsigned** — see note below |
-
-            ### macOS note
-
-            These DMGs are **not signed or notarized**. macOS Gatekeeper will
-            show an "unidentified developer" warning. To open:
-            1. Right-click the DMG → Open
-            2. Click Open in the dialog
-
-            Proper signing requires an Apple Developer ID certificate. See
-            `RELEASE_CHECKLIST.md` for the manual follow-up steps.
-
-            ### Installation (Windows)
-
-            1. Download `scriptOdd-Setup-*.exe`
-            2. Run the installer (no admin rights required)
-            3. Launch from Desktop or Start Menu
-
           files: |
-            artifacts/windows/*.exe
-            artifacts/mac/*.dmg
+            dist/*.exe
+            dist/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
