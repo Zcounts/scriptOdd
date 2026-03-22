@@ -1,0 +1,131 @@
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+
+interface AutocompletePopup {
+  type: 'character' | 'scene-heading' | 'location' | 'transition'
+  items: string[]
+  selectedIndex: number
+  position: { x: number; y: number }
+}
+
+/**
+ * Autocomplete memory store — Phase 1 placeholder.
+ * Full autocomplete logic will be implemented in Phase 5.
+ */
+interface AutocompleteState {
+  // Remembered entities
+  characters: string[]
+  locations: string[]
+  sceneHeadings: string[]
+  transitions: string[]
+
+  // Active popup state
+  activePopup: AutocompletePopup | null
+
+  // Semantic color mapping (character name → assigned color index)
+  characterColors: Record<string, number>
+  locationColors: Record<string, number>
+
+  // Actions
+  addCharacter: (name: string) => void
+  addLocation: (name: string) => void
+  addSceneHeading: (heading: string) => void
+  removeCharacter: (name: string) => void
+  removeLocation: (name: string) => void
+  clearMemory: () => void
+
+  showPopup: (popup: AutocompletePopup) => void
+  hidePopup: () => void
+  navigatePopup: (direction: 'up' | 'down') => void
+}
+
+export const useAutocompleteStore = create<AutocompleteState>()(
+  persist(
+    (set, get) => ({
+      characters: [],
+      locations: [],
+      sceneHeadings: [],
+      transitions: ['FADE OUT.', 'CUT TO:', 'DISSOLVE TO:', 'SMASH CUT TO:'],
+      activePopup: null,
+      characterColors: {},
+      locationColors: {},
+
+      addCharacter: (name) => {
+        const normalized = name.toUpperCase().trim()
+        if (!normalized) return
+        set((s) => {
+          if (s.characters.includes(normalized)) return s
+          const colorIndex = Object.keys(s.characterColors).length % 8
+          return {
+            characters: [...s.characters, normalized].sort(),
+            characterColors: { ...s.characterColors, [normalized]: colorIndex },
+          }
+        })
+      },
+
+      addLocation: (name) => {
+        const normalized = name.toUpperCase().trim()
+        if (!normalized) return
+        set((s) => {
+          if (s.locations.includes(normalized)) return s
+          const colorIndex = Object.keys(s.locationColors).length % 6
+          return {
+            locations: [...s.locations, normalized].sort(),
+            locationColors: { ...s.locationColors, [normalized]: colorIndex },
+          }
+        })
+      },
+
+      addSceneHeading: (heading) => {
+        const normalized = heading.toUpperCase().trim()
+        if (!normalized) return
+        set((s) => ({
+          sceneHeadings: [
+            normalized,
+            ...s.sceneHeadings.filter((h) => h !== normalized),
+          ].slice(0, 200),
+        }))
+      },
+
+      removeCharacter: (name) =>
+        set((s) => ({ characters: s.characters.filter((c) => c !== name) })),
+
+      removeLocation: (name) =>
+        set((s) => ({ locations: s.locations.filter((l) => l !== name) })),
+
+      clearMemory: () =>
+        set({
+          characters: [],
+          locations: [],
+          sceneHeadings: [],
+          characterColors: {},
+          locationColors: {},
+        }),
+
+      showPopup: (popup) => set({ activePopup: popup }),
+
+      hidePopup: () => set({ activePopup: null }),
+
+      navigatePopup: (direction) =>
+        set((s) => {
+          if (!s.activePopup) return s
+          const count = s.activePopup.items.length
+          const delta = direction === 'down' ? 1 : -1
+          const selectedIndex =
+            (s.activePopup.selectedIndex + delta + count) % count
+          return { activePopup: { ...s.activePopup, selectedIndex } }
+        }),
+    }),
+    {
+      name: 'scriptodd-autocomplete',
+      partialize: (s) => ({
+        characters: s.characters,
+        locations: s.locations,
+        sceneHeadings: s.sceneHeadings,
+        transitions: s.transitions,
+        characterColors: s.characterColors,
+        locationColors: s.locationColors,
+      }),
+    }
+  )
+)

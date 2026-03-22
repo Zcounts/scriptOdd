@@ -1,0 +1,159 @@
+import React from 'react'
+import {
+  FilePlus,
+  FolderOpen,
+  Save,
+  Download,
+  LayoutTemplate,
+  BookOpen,
+  Grid3X3,
+  PanelLeft,
+  PanelRight,
+  Sun,
+  Moon,
+  Maximize2,
+} from 'lucide-react'
+import { useLayoutStore } from '../../store/layoutStore'
+import { useAppStore } from '../../store/appStore'
+import { useProjectStore } from '../../store/projectStore'
+import { IconButton } from '../ui/IconButton'
+import { Tooltip } from '../ui/Tooltip'
+import type { ViewMode } from '../../types'
+
+const VIEW_MODES: { id: ViewMode; label: string; icon: React.ReactNode; shortcut: string }[] = [
+  { id: 'draft', label: 'Draft View', icon: <LayoutTemplate size={14} />, shortcut: 'Ctrl+1' },
+  { id: 'page',  label: 'Page View',  icon: <BookOpen size={14} />,       shortcut: 'Ctrl+2' },
+  { id: 'board', label: 'Board View', icon: <Grid3X3 size={14} />,        shortcut: 'Ctrl+3' },
+]
+
+export function TopToolbar(): React.JSX.Element {
+  const { activeView, setActiveView, leftSidebarVisible, rightPanelVisible, toggleLeftSidebar, toggleRightPanel, focusMode, toggleFocusMode } =
+    useLayoutStore()
+  const { theme, toggleTheme } = useAppStore()
+  const { isModified } = useProjectStore()
+
+  const handleNew = () => {
+    console.log('[toolbar] new project')
+  }
+
+  const handleOpen = async () => {
+    if (!window.api) return
+    const result = await window.api.openProject()
+    if (!result.cancelled) console.log('[toolbar] open:', result.filePath)
+  }
+
+  const handleSave = async () => {
+    if (!window.api) return
+    console.log('[toolbar] save')
+  }
+
+  const handleExportPDF = async () => {
+    if (!window.api) return
+    const result = await window.api.exportPDF({})
+    console.log('[toolbar] export pdf:', result)
+  }
+
+  return (
+    <div className="flex items-center gap-0.5 h-10 px-2 bg-so-surface border-b border-so-border flex-shrink-0">
+      {/* File operations */}
+      <div className="flex items-center gap-0.5">
+        <Tooltip content="New Project (Ctrl+N)" side="bottom">
+          <IconButton label="New Project" onClick={handleNew}>
+            <FilePlus size={15} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip content="Open Project (Ctrl+O)" side="bottom">
+          <IconButton label="Open Project" onClick={handleOpen}>
+            <FolderOpen size={15} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip content={`Save${isModified ? ' (unsaved changes)' : ''} (Ctrl+S)`} side="bottom">
+          <IconButton
+            label="Save"
+            onClick={handleSave}
+            className={isModified ? 'text-so-warning!' : ''}
+          >
+            <Save size={15} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip content="Export PDF (Ctrl+Shift+E)" side="bottom">
+          <IconButton label="Export PDF" onClick={handleExportPDF}>
+            <Download size={15} />
+          </IconButton>
+        </Tooltip>
+      </div>
+
+      <Divider />
+
+      {/* View mode switcher */}
+      <div className="flex items-center bg-so-bg rounded px-0.5 py-0.5 gap-0.5">
+        {VIEW_MODES.map(({ id, label, icon, shortcut }) => (
+          <Tooltip key={id} content={`${label} (${shortcut})`} side="bottom">
+            <IconButton
+              label={label}
+              active={activeView === id}
+              onClick={() => setActiveView(id)}
+              className="gap-1.5 px-2 text-xs font-medium"
+              size="sm"
+            >
+              {icon}
+              <span className="hidden md:inline">{label.replace(' View', '').replace(' ', '\u00A0')}</span>
+            </IconButton>
+          </Tooltip>
+        ))}
+      </div>
+
+      <Divider />
+
+      {/* Panel toggles */}
+      <div className="flex items-center gap-0.5">
+        <Tooltip content={`${leftSidebarVisible ? 'Hide' : 'Show'} Sidebar (Ctrl+\\)`} side="bottom">
+          <IconButton
+            label="Toggle Sidebar"
+            active={leftSidebarVisible}
+            onClick={toggleLeftSidebar}
+          >
+            <PanelLeft size={15} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip content={`${rightPanelVisible ? 'Hide' : 'Show'} Right Panel (Ctrl+Shift+\\)`} side="bottom">
+          <IconButton
+            label="Toggle Right Panel"
+            active={rightPanelVisible}
+            onClick={toggleRightPanel}
+          >
+            <PanelRight size={15} />
+          </IconButton>
+        </Tooltip>
+
+        <Tooltip content={`Focus Mode (Ctrl+Shift+F)`} side="bottom">
+          <IconButton
+            label="Focus Mode"
+            active={focusMode}
+            onClick={toggleFocusMode}
+          >
+            <Maximize2 size={15} />
+          </IconButton>
+        </Tooltip>
+      </div>
+
+      {/* Spacer */}
+      <div className="flex-1" />
+
+      {/* Theme toggle */}
+      <Tooltip content={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode (Ctrl+Shift+T)`} side="bottom">
+        <IconButton label="Toggle Theme" onClick={toggleTheme}>
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+        </IconButton>
+      </Tooltip>
+    </div>
+  )
+}
+
+function Divider(): React.JSX.Element {
+  return <div className="w-px h-5 bg-so-border-dim mx-1 flex-shrink-0" />
+}
