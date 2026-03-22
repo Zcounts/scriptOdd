@@ -1,63 +1,97 @@
 # scriptOdd — Release Checklist
 
-Version: 1.0.0
+---
+
+## Overview of automated vs manual steps
+
+| Step | Automated by CI? |
+|------|-----------------|
+| Typecheck + unit tests | ✅ Yes — `verify` job in release.yml |
+| Windows NSIS installer | ✅ Yes — `build-windows` job |
+| macOS DMG (unsigned) | ✅ Yes — `build-mac` job |
+| GitHub Release + asset upload | ✅ Yes — `release` job (tag builds only) |
+| macOS code-signing + notarization | ❌ No — requires Apple Developer ID (see below) |
+| Installer smoke test on real hardware | ❌ No — manual |
+| Release notes / Gumroad listing | ❌ No — manual |
 
 ---
 
-## Pre-Release
+## Pre-Release (manual)
 
-### Code Quality
-- [ ] `npm run typecheck` passes with zero errors
-- [ ] `npm run test` passes (33/33 tests)
+### Code quality
 - [ ] No TODO/FIXME comments in release-critical paths
-- [ ] All console.error calls are backed by user-facing error messages
-
-### Testing
-- [ ] QA Checklist completed on target platform(s)
+- [ ] All `console.error` calls are backed by user-facing error messages
+- [ ] QA Checklist completed on target platform(s) (see QA_CHECKLIST.md)
 - [ ] Tested on: Windows 10/11 x64
 - [ ] Tested on: macOS (if applicable)
-- [ ] Tested on: Ubuntu/Debian (if applicable)
 - [ ] Smoke tests for packaged build completed (see SMOKE_TESTS.md)
 - [ ] No regressions in: typing flow, save/load, PDF export, Fountain import/export
 
-### Assets
-- [ ] `build/icon.ico` present (Windows installer icon)
-- [ ] `build/icon.icns` present (macOS app icon, if building for macOS)
-- [ ] `build/icon.png` present (Linux AppImage icon, 512×512 PNG)
+### Icons
+Icons are pre-generated placeholders from `scripts/generate-icons.py`.
+- [ ] Replace `build/icon.png`, `build/icon.ico`, `build/icon.icns` with final artwork before first public release
+- To regenerate placeholders from the script: `python3 scripts/generate-icons.py`
 
 ---
 
-## Packaging
+## Triggering the release pipeline
 
-### Windows
-- [ ] Run `npm run dist:win`
-- [ ] Installer appears in `dist/` as `scriptOdd-Setup-1.0.0.exe`
-- [ ] Installer runs without requiring admin/UAC (per-user install)
-- [ ] Installed app launches correctly
+The CI workflow lives at `.github/workflows/release.yml`.
 
-### macOS (if applicable)
-- [ ] Run `npm run dist:mac`
-- [ ] DMG appears in `dist/` as `scriptOdd-1.0.0-{arch}.dmg`
-- [ ] App opens without "unidentified developer" block (requires notarization for distribution)
+### To create a full release:
 
-### Linux (if applicable)
-- [ ] Run `npm run dist:linux`
-- [ ] AppImage appears in `dist/`
-- [ ] AppImage runs after `chmod +x`
+```bash
+# Bump version in package.json first, then:
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This triggers:
+1. `verify` — typecheck + tests on ubuntu-latest
+2. `build-windows` — `npm run dist:win` on windows-latest → uploads `scriptOdd-Setup-<ver>.exe`
+3. `build-mac` — `npm run dist:mac` on macos-latest → uploads `scriptOdd-<ver>-x64.dmg` + `scriptOdd-<ver>-arm64.dmg`
+4. `release` — downloads artifacts, creates a **draft** GitHub Release with all assets attached
+
+### To do a trial build without publishing:
+Use the "Run workflow" button in the GitHub Actions tab (workflow_dispatch).
+No release is created; artifacts are stored for 7 days.
 
 ---
 
-## GitHub Release
+## After CI completes (manual)
 
-- [ ] Merge all feature branches into `master`/`main`
-- [ ] Tag the release: `git tag v1.0.0 && git push --tags`
-- [ ] Create GitHub Release from tag v1.0.0
-- [ ] Upload installers as release assets:
-  - `scriptOdd-Setup-1.0.0.exe` (Windows)
-  - `scriptOdd-1.0.0.dmg` (macOS, if built)
-  - `scriptOdd-1.0.0.AppImage` (Linux, if built)
-- [ ] Write release notes summarising features and known limitations
-- [ ] Mark as latest release
+- [ ] Open the draft release on GitHub and review the auto-generated notes
+- [ ] Edit release notes if needed (known issues, upgrade notes)
+- [ ] Publish the release (un-draft it)
+- [ ] Download and smoke-test the Windows installer (see SMOKE_TESTS.md)
+
+---
+
+## macOS — signing and notarization ⚠️
+
+**The CI build produces unsigned, unnotarized DMGs.**
+
+macOS Gatekeeper will block launch for any user who downloaded the DMG from
+the internet. Users can still open the app via right-click → Open, but this
+is a significant friction point for distribution.
+
+To fully solve this, you need:
+
+1. An Apple Developer account ($99/year)
+2. A "Developer ID Application" certificate exported as `.p12`
+3. An App-Specific Password from appleid.apple.com for notarization
+4. Add these as repository secrets:
+   - `CSC_LINK` — base64-encoded `.p12` certificate
+   - `CSC_KEY_PASSWORD` — certificate password
+   - `APPLE_ID` — your Apple ID email
+   - `APPLE_APP_SPECIFIC_PASSWORD` — app-specific password
+   - `APPLE_TEAM_ID` — your 10-character Team ID
+5. Update the `build-mac` job in `.github/workflows/release.yml` to pass those
+   env vars to `npm run dist:mac` and enable `hardened-runtime` + notarization
+   in the `mac` section of `package.json`
+
+Until signing is set up, the macOS DMG is only suitable for personal use or
+developer testing.
 
 ---
 
@@ -79,5 +113,5 @@ Version: 1.0.0
 ## Post-Release
 
 - [ ] Monitor GitHub Issues for critical bugs
-- [ ] Update RELEASE_CHECKLIST.md version number for next release
+- [ ] Update version in `package.json` for next release cycle
 - [ ] Archive QA results
