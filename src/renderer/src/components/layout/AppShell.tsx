@@ -63,7 +63,7 @@ function jumpToPrevScene(editor: NonNullable<ReturnType<typeof useScreenplayEdit
 }
 
 function insertNewScene(editor: NonNullable<ReturnType<typeof useScreenplayEditor>>) {
-  const newId = Math.random().toString(36).slice(2, 9)
+  const newId = crypto.randomUUID()
   editor
     .chain()
     .focus()

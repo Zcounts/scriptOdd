@@ -183,8 +183,9 @@ export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEdi
     // Clear the pending flag
     useDocumentStore.getState().setPendingLoad(null)
 
-    // After loading a project the content is clean
-    useProjectStore.getState().markSaved(useProjectStore.getState().filePath ?? '')
+    // After loading a project the content is clean (only mark saved if we have a path)
+    const fp = useProjectStore.getState().filePath
+    if (fp) useProjectStore.getState().markSaved(fp)
   }, [editor, pendingLoad])
 
   // ── Autosave timer ──────────────────────────────────────────────────────────

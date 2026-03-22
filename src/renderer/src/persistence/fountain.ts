@@ -254,13 +254,16 @@ function tokenize(text: string): FountainToken[] {
 
     // Forced action: starts with '!'
     if (firstLine.startsWith('!')) {
-      const joined = chunk.map((l) => l.replace(/^!/, '')).join('\n')
-      tokens.push({ type: 'action', text: joined })
+      for (const line of chunk) {
+        tokens.push({ type: 'action', text: line.replace(/^!/, '') })
+      }
       continue
     }
 
-    // Default: action
-    tokens.push({ type: 'action', text: chunk.join('\n') })
+    // Default: action — emit one token per line to avoid \n in text nodes
+    for (const line of chunk) {
+      tokens.push({ type: 'action', text: line })
+    }
   }
 
   return tokens

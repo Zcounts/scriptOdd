@@ -61,9 +61,9 @@ function cursorAtStart(editor: { state: { selection: { $anchor: { parentOffset: 
   return editor.state.selection.$anchor.parentOffset === 0
 }
 
-/** Tiny ID for new blocks to avoid duplicate IDs after split */
+/** Unique ID for new blocks — uses crypto.randomUUID() to prevent collisions */
 function newId(): string {
-  return Math.random().toString(36).slice(2, 9)
+  return crypto.randomUUID()
 }
 
 // ── Extension ─────────────────────────────────────────────────────────────────
