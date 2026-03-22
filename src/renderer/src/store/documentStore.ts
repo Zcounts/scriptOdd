@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { JSONContent } from '@tiptap/core'
-import type { Scene, Note } from '../types'
+import type { Scene, Note, SceneStatus } from '../types'
 
 /**
  * Document store — Phase 2.
@@ -45,6 +45,9 @@ interface DocumentState {
   addScene: (scene: Scene) => void
   removeScene: (id: string) => void
   reorderScenes: (orderedIds: string[]) => void
+
+  /** Update title and/or status on a single scene */
+  updateScene: (id: string, patch: { title?: string; status?: SceneStatus | null }) => void
 
   addNote: (note: Note) => void
   removeNote: (id: string) => void
@@ -100,6 +103,17 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
         .filter(Boolean) as Scene[]
       return { scenes }
     }),
+
+  updateScene: (id, patch) =>
+    set((s) => ({
+      scenes: s.scenes.map((sc) => {
+        if (sc.id !== id) return sc
+        const updated = { ...sc }
+        if ('title' in patch) updated.title = patch.title ?? undefined
+        if ('status' in patch) updated.status = patch.status ?? undefined
+        return updated
+      }),
+    })),
 
   addNote: (note) => set((s) => ({ notes: [...s.notes, note] })),
 

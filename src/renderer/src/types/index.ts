@@ -12,6 +12,22 @@ export type LayoutPresetName = 'default' | 'writer' | 'focus' | 'research'
 
 export type SidebarTab = 'navigator' | 'characters' | 'locations' | 'props'
 
+// ── Scene status ──────────────────────────────────────────────────────────────
+
+export type SceneStatus = 'not-started' | 'in-progress' | 'needs-revision' | 'complete'
+
+export interface SceneStatusConfig {
+  label: string
+  color: string
+}
+
+export const SCENE_STATUS_CONFIG: Record<SceneStatus, SceneStatusConfig> = {
+  'not-started':    { label: 'Not Started',    color: '#ef4444' },
+  'in-progress':    { label: 'In Progress',    color: '#f97316' },
+  'needs-revision': { label: 'Needs Revision', color: '#eab308' },
+  'complete':       { label: 'Complete',        color: '#22c55e' },
+}
+
 export type RightPanelTab = 'notes' | 'outline' | 'board'
 
 // ── Screenplay element types ──────────────────────────────────────────────────
@@ -79,6 +95,10 @@ export interface Scene {
   color: string | null
   order: number
   noteIds: string[]
+  /** Optional custom scene title (e.g. "The Confrontation") */
+  title?: string
+  /** Production status — drives the color dot/stripe in Navigator and Board */
+  status?: SceneStatus
 }
 
 export interface Note {

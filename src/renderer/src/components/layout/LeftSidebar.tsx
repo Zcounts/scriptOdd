@@ -11,8 +11,8 @@
  * in the editor — same color index = same visual color everywhere.
  */
 
-import React, { useState, useRef } from 'react'
-import { List, Users, MapPin, Film, GripVertical, StickyNote, Tag, X, Plus } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { List, Users, MapPin, Film, GripVertical, StickyNote, Tag, X, Plus, Pencil, Check } from 'lucide-react'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useDocumentStore } from '../../store/documentStore'
 import { useAutocompleteStore } from '../../store/autocompleteStore'
@@ -20,7 +20,8 @@ import { useScreenplayEditor } from '../../editor/ScreenplayEditorProvider'
 import { jumpToSceneById, reorderScenesInEditor } from '../../editor/sceneUtils'
 import { IconButton } from '../ui/IconButton'
 import { Tooltip } from '../ui/Tooltip'
-import type { Scene, SidebarTab } from '../../types'
+import type { Scene, SidebarTab, SceneStatus } from '../../types'
+import { SCENE_STATUS_CONFIG } from '../../types'
 
 // ── Semantic color swatch lookup ──────────────────────────────────────────────
 
@@ -94,6 +95,79 @@ function SidebarHeader({ tab }: { tab: SidebarTab }): React.JSX.Element {
   )
 }
 
+// ── Status dot + picker ───────────────────────────────────────────────────────
+
+const STATUS_ORDER: SceneStatus[] = ['not-started', 'in-progress', 'needs-revision', 'complete']
+
+interface StatusDotProps {
+  status?: SceneStatus
+  onSelect: (s: SceneStatus | null) => void
+}
+
+function StatusDot({ status, onSelect }: StatusDotProps): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [open])
+
+  const dotColor = status ? SCENE_STATUS_CONFIG[status].color : undefined
+
+  return (
+    <div ref={ref} className="relative flex-shrink-0 mt-0.5">
+      <Tooltip content={status ? SCENE_STATUS_CONFIG[status].label : 'Set status'} side="right">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
+          className="w-2.5 h-2.5 rounded-full border transition-opacity hover:opacity-100 focus:outline-none"
+          style={
+            dotColor
+              ? { backgroundColor: dotColor, borderColor: dotColor }
+              : { backgroundColor: 'transparent', borderColor: 'currentColor', opacity: 0.3 }
+          }
+          aria-label="Set scene status"
+        />
+      </Tooltip>
+
+      {open && (
+        <div className="absolute left-4 top-0 z-50 bg-so-elevated border border-so-border rounded-lg shadow-lg py-1 min-w-[140px]">
+          {STATUS_ORDER.map((s) => {
+            const cfg = SCENE_STATUS_CONFIG[s]
+            return (
+              <button
+                key={s}
+                type="button"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-so-text hover:bg-so-active transition-colors text-left"
+                onClick={(e) => { e.stopPropagation(); onSelect(s); setOpen(false) }}
+              >
+                <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: cfg.color }} />
+                <span>{cfg.label}</span>
+                {status === s && <Check size={10} className="ml-auto text-so-accent" />}
+              </button>
+            )
+          })}
+          {status && (
+            <button
+              type="button"
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-so-text-3 hover:bg-so-active transition-colors text-left border-t border-so-border-dim mt-1 pt-1"
+              onClick={(e) => { e.stopPropagation(); onSelect(null); setOpen(false) }}
+            >
+              <span className="w-2.5 h-2.5 rounded-full border border-current flex-shrink-0 opacity-40" />
+              <span>Clear status</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── Navigator panel ───────────────────────────────────────────────────────────
 
 function NavigatorPanel(): React.JSX.Element {
@@ -101,6 +175,7 @@ function NavigatorPanel(): React.JSX.Element {
   const activeSceneId = useDocumentStore((s) => s.activeSceneId)
   const setActiveScene = useDocumentStore((s) => s.setActiveScene)
   const reorderScenes = useDocumentStore((s) => s.reorderScenes)
+  const updateScene = useDocumentStore((s) => s.updateScene)
   const editor = useScreenplayEditor()
 
   const [draggedId, setDraggedId] = useState<string | null>(null)
@@ -186,62 +261,187 @@ function NavigatorPanel(): React.JSX.Element {
         const isOver = dragOverId === scene.id
 
         return (
-          <li
+          <NavigatorSceneRow
             key={scene.id}
-            draggable
+            scene={scene}
+            index={i}
+            isActive={isActive}
+            isDragging={isDragging}
+            isOver={isOver}
+            dropPos={dropPos}
             onDragStart={(e) => handleDragStart(e, scene.id)}
             onDragEnter={handleDragEnter}
             onDragOver={(e) => handleDragOver(e, scene.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, scene.id)}
-            className={['relative group', isDragging ? 'opacity-40' : ''].join(' ')}
-          >
-            {isOver && dropPos === 'before' && (
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-so-accent z-10 pointer-events-none" />
-            )}
-
-            <button
-              type="button"
-              className={[
-                'w-full text-left px-2 py-1.5',
-                'flex items-start gap-1.5',
-                'hover:bg-so-active transition-colors duration-100',
-                isActive ? 'bg-so-active text-so-text' : 'text-so-text-2',
-              ].join(' ')}
-              onClick={() => handleSceneClick(scene)}
-            >
-              <span className="flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 text-so-text-3 cursor-grab active:cursor-grabbing" aria-hidden>
-                <GripVertical size={11} />
-              </span>
-              <span className="text-xxs text-so-text-3 mt-0.5 w-4 text-right flex-shrink-0 font-mono">
-                {i + 1}
-              </span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-xs font-medium truncate text-so-scene">
-                  {scene.heading || 'UNTITLED SCENE'}
-                </span>
-                {scene.synopsis && (
-                  <span className="block text-xxs text-so-text-3 truncate mt-0.5 leading-relaxed">
-                    {scene.synopsis}
-                  </span>
-                )}
-              </span>
-              {scene.noteIds.length > 0 && (
-                <Tooltip content={`${scene.noteIds.length} note${scene.noteIds.length > 1 ? 's' : ''}`} side="right">
-                  <span className="flex-shrink-0 mt-0.5 text-so-text-3 opacity-60">
-                    <StickyNote size={10} />
-                  </span>
-                </Tooltip>
-              )}
-            </button>
-
-            {isOver && dropPos === 'after' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-so-accent z-10 pointer-events-none" />
-            )}
-          </li>
+            onClick={() => handleSceneClick(scene)}
+            onUpdateScene={(patch) => updateScene(scene.id, patch)}
+          />
         )
       })}
     </ul>
+  )
+}
+
+interface NavigatorSceneRowProps {
+  scene: Scene
+  index: number
+  isActive: boolean
+  isDragging: boolean
+  isOver: boolean
+  dropPos: 'before' | 'after'
+  onDragStart: (e: React.DragEvent) => void
+  onDragEnter: () => void
+  onDragOver: (e: React.DragEvent) => void
+  onDragLeave: () => void
+  onDrop: (e: React.DragEvent) => void
+  onClick: () => void
+  onUpdateScene: (patch: { title?: string; status?: SceneStatus | null }) => void
+}
+
+function NavigatorSceneRow({
+  scene, index, isActive, isDragging, isOver, dropPos,
+  onDragStart, onDragEnter, onDragOver, onDragLeave, onDrop,
+  onClick, onUpdateScene,
+}: NavigatorSceneRowProps): React.JSX.Element {
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState(scene.title ?? '')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (editingTitle) {
+      setTitleDraft(scene.title ?? '')
+      setTimeout(() => inputRef.current?.select(), 0)
+    }
+  }, [editingTitle])
+
+  function commitTitle() {
+    const trimmed = titleDraft.trim()
+    onUpdateScene({ title: trimmed || undefined })
+    setEditingTitle(false)
+  }
+
+  function handleTitleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') { e.preventDefault(); commitTitle() }
+    if (e.key === 'Escape') { setEditingTitle(false) }
+    e.stopPropagation()
+  }
+
+  return (
+    <li
+      draggable
+      onDragStart={onDragStart}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={['relative group', isDragging ? 'opacity-40' : ''].join(' ')}
+    >
+      {isOver && dropPos === 'before' && (
+        <div className="absolute top-0 left-0 right-0 h-0.5 bg-so-accent z-10 pointer-events-none" />
+      )}
+
+      <div
+        className={[
+          'w-full text-left px-2 py-1.5',
+          'flex items-start gap-1.5',
+          'hover:bg-so-active transition-colors duration-100',
+          isActive ? 'bg-so-active text-so-text' : 'text-so-text-2',
+        ].join(' ')}
+      >
+        {/* Drag handle */}
+        <span
+          className="flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 text-so-text-3 cursor-grab active:cursor-grabbing"
+          aria-hidden
+        >
+          <GripVertical size={11} />
+        </span>
+
+        {/* Status dot */}
+        <StatusDot
+          status={scene.status}
+          onSelect={(s) => onUpdateScene({ status: s })}
+        />
+
+        {/* Scene number */}
+        <span className="text-xxs text-so-text-3 mt-0.5 w-4 text-right flex-shrink-0 font-mono">
+          {index + 1}
+        </span>
+
+        {/* Text content — clickable to navigate */}
+        <button
+          type="button"
+          className="flex-1 min-w-0 text-left"
+          onClick={onClick}
+        >
+          {/* Custom title or heading as title */}
+          {scene.title ? (
+            <>
+              <span className="block text-xs font-semibold truncate text-so-text">
+                {scene.title}
+              </span>
+              <span className="block text-xxs font-medium truncate text-so-scene mt-0.5">
+                {scene.heading || 'UNTITLED SCENE'}
+              </span>
+            </>
+          ) : (
+            <span className="block text-xs font-medium truncate text-so-scene">
+              {scene.heading || 'UNTITLED SCENE'}
+            </span>
+          )}
+        </button>
+
+        {/* Edit title button */}
+        <Tooltip content="Edit title" side="right">
+          <button
+            type="button"
+            className="flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 hover:!opacity-100 text-so-text-3 transition-opacity"
+            onClick={(e) => { e.stopPropagation(); setEditingTitle(true) }}
+            aria-label="Edit scene title"
+          >
+            <Pencil size={10} />
+          </button>
+        </Tooltip>
+
+        {/* Notes badge */}
+        {scene.noteIds.length > 0 && (
+          <Tooltip content={`${scene.noteIds.length} note${scene.noteIds.length > 1 ? 's' : ''}`} side="right">
+            <span className="flex-shrink-0 mt-0.5 text-so-text-3 opacity-60">
+              <StickyNote size={10} />
+            </span>
+          </Tooltip>
+        )}
+      </div>
+
+      {/* Inline title editor */}
+      {editingTitle && (
+        <div className="px-2 pb-2 bg-so-active" onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-1">
+            <input
+              ref={inputRef}
+              value={titleDraft}
+              onChange={(e) => setTitleDraft(e.target.value)}
+              onKeyDown={handleTitleKeyDown}
+              onBlur={commitTitle}
+              placeholder="Scene title…"
+              className="flex-1 text-xs bg-so-elevated border border-so-accent rounded px-2 py-1 text-so-text placeholder:text-so-text-3 outline-none selectable"
+            />
+            <button
+              type="button"
+              onClick={commitTitle}
+              className="px-1.5 py-1 text-so-accent hover:bg-so-elevated rounded transition-colors"
+              aria-label="Confirm title"
+            >
+              <Check size={11} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {isOver && dropPos === 'after' && (
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-so-accent z-10 pointer-events-none" />
+      )}
+    </li>
   )
 }
 
