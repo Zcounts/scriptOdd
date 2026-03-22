@@ -20,7 +20,35 @@ export type ElementType =
   | 'note'
   | 'page-break'
 
-// ── Project & document placeholders (will be expanded in Phase 2) ─────────────
+// ── Screenplay document model (Phase 2) ───────────────────────────────────────
+
+/** Metadata stored on a single screenplay block */
+export interface BlockMeta {
+  /** Stable UUID for this block — survives reordering */
+  id: string
+  /** Which scene this block belongs to (scene heading id or null) */
+  sceneId: string | null
+  /** Semantic/editorial tags e.g. 'wip', 'cut', 'important' */
+  tags: string[]
+  /** IDs of anchored notes/comments attached to this block */
+  noteIds: string[]
+}
+
+/** Metadata stored on a scene (derived from SceneHeading blocks) */
+export interface SceneMeta {
+  id: string
+  heading: string
+  synopsis: string
+  color: string | null
+  order: number
+  noteIds: string[]
+  /** Act number (1, 2a, 2b, 3) — for BoardView grouping */
+  act?: string
+  /** Locked prevents reordering in BoardView */
+  locked?: boolean
+}
+
+// ── Project & document placeholders ──────────────────────────────────────────
 
 export interface RecentProject {
   id: string

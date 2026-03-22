@@ -175,7 +175,148 @@ body {
   line-height: 1;
   width: 8.5in;
   min-height: 11in;
-  padding: 1in 1.5in 1in 1.5in;
+  padding: 1in 1in 1in 1.5in;
   box-shadow: 0 4px 32px rgba(0, 0, 0, 0.4);
   margin: 0 auto;
+  position: relative;
+}
+
+/* ── Draft View — screenplay editor blocks ─────────────────────────────────── */
+
+/* Editor container resets */
+.screenplay-draft .ProseMirror {
+  outline: none;
+  font-family: var(--font-screenplay);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--so-text);
+  min-height: 60vh;
+}
+
+/* Tiptap cursor placeholder */
+.screenplay-draft .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--so-text-3);
+  pointer-events: none;
+  height: 0;
+}
+
+/* ── Scene Heading ── */
+.screenplay-draft .ProseMirror .sp-scene-heading,
+.sp-scene-heading {
+  color: var(--so-scene);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-top: 1.5em;
+  margin-bottom: 0.25em;
+}
+
+/* ── Action ── */
+.screenplay-draft .ProseMirror .sp-action,
+.sp-action {
+  color: var(--so-action);
+  margin-bottom: 0.5em;
+}
+
+/* ── Character ── */
+.screenplay-draft .ProseMirror .sp-character,
+.sp-character {
+  color: var(--so-character);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-top: 1em;
+  margin-bottom: 0.1em;
+  padding-left: 6rem; /* ~3.5in equivalent in screen space */
+}
+
+/* ── Dialogue ── */
+.screenplay-draft .ProseMirror .sp-dialogue,
+.sp-dialogue {
+  color: var(--so-dialogue);
+  padding-left: 3.5rem;
+  padding-right: 3rem;
+  margin-bottom: 0.25em;
+}
+
+/* ── Parenthetical ── */
+.screenplay-draft .ProseMirror .sp-parenthetical,
+.sp-parenthetical {
+  color: var(--so-paren);
+  padding-left: 4.5rem;
+  margin-bottom: 0.1em;
+}
+
+/* Parenthetical wraps content in parens via CSS */
+.screenplay-draft .ProseMirror .sp-parenthetical::before { content: '('; }
+.screenplay-draft .ProseMirror .sp-parenthetical::after  { content: ')'; }
+
+/* ── Transition ── */
+.screenplay-draft .ProseMirror .sp-transition,
+.sp-transition {
+  color: var(--so-transition);
+  text-transform: uppercase;
+  text-align: right;
+  font-weight: 500;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+/* ── Note ── */
+.screenplay-draft .ProseMirror .sp-note,
+.sp-note {
+  color: var(--so-note);
+  font-style: italic;
+  font-size: 0.9em;
+  opacity: 0.8;
+  padding: 0.2em 0.5em;
+  border-left: 2px solid var(--so-note);
+  margin: 0.5em 0;
+}
+
+/* ── ProseMirror selection ── */
+.screenplay-draft .ProseMirror ::selection {
+  background: rgba(124, 92, 191, 0.35);
+}
+
+/* ── Page View — screenplay page blocks ───────────────────────────────────── */
+
+.page-view-scene-heading {
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-top: 1em;
+  margin-bottom: 0;
+}
+
+.page-view-action {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+.page-view-character {
+  margin-left: 2.2in;
+  margin-top: 1em;
+  margin-bottom: 0;
+  text-transform: uppercase;
+}
+
+.page-view-dialogue {
+  margin-left: 1.5in;
+  margin-right: 1.5in;
+  margin-bottom: 0;
+}
+
+.page-view-parenthetical {
+  margin-left: 1.8in;
+  margin-right: 2in;
+  margin-bottom: 0;
+}
+
+.page-view-transition {
+  text-align: right;
+  text-transform: uppercase;
+  margin-top: 1em;
+  margin-bottom: 1em;
 }

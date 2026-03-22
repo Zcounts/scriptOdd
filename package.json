@@ -17,6 +17,9 @@
     "dist": "npm run build && electron-builder"
   },
   "dependencies": {
+    "@tiptap/pm": "^3.20.4",
+    "@tiptap/react": "^3.20.4",
+    "@tiptap/starter-kit": "^3.20.4",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -43,7 +46,9 @@
     "directories": {
       "output": "dist"
     },
-    "files": ["out/**/*"],
+    "files": [
+      "out/**/*"
+    ],
     "win": {
       "target": "nsis"
     },
