@@ -1,7 +1,20 @@
+/**
+ * RightPanel — Phase 4
+ *
+ * Three tabs:
+ *   - Notes   : scene-specific and project-level notes (placeholder)
+ *   - Outline : synopsis list of all scenes
+ *   - Board   : compact index-card board alongside the editor (editor + board layout)
+ *
+ * The Board tab enables the "editor + board" layout combination: resize the right
+ * panel wider to give the board more breathing room.
+ */
+
 import React from 'react'
-import { MessageSquare, AlignLeft, Plus } from 'lucide-react'
+import { MessageSquare, AlignLeft, LayoutGrid, Plus } from 'lucide-react'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useDocumentStore } from '../../store/documentStore'
+import { CompactBoardPanel } from '../views/BoardView'
 import { IconButton } from '../ui/IconButton'
 import { Tooltip } from '../ui/Tooltip'
 import type { RightPanelTab } from '../../types'
@@ -9,6 +22,7 @@ import type { RightPanelTab } from '../../types'
 const TABS: { id: RightPanelTab; label: string; icon: React.ReactNode }[] = [
   { id: 'notes',   label: 'Notes',   icon: <MessageSquare size={13} /> },
   { id: 'outline', label: 'Outline', icon: <AlignLeft size={13} /> },
+  { id: 'board',   label: 'Board',   icon: <LayoutGrid size={13} /> },
 ]
 
 export function RightPanel(): React.JSX.Element {
@@ -39,17 +53,21 @@ export function RightPanel(): React.JSX.Element {
 
         <div className="flex-1" />
 
-        <Tooltip content="Add Note" side="left">
-          <IconButton label="Add Note" size="sm" className="mr-1">
-            <Plus size={13} />
-          </IconButton>
-        </Tooltip>
+        {/* Show Add Note only on notes tab */}
+        {rightPanelTab === 'notes' && (
+          <Tooltip content="Add Note" side="left">
+            <IconButton label="Add Note" size="sm" className="mr-1">
+              <Plus size={13} />
+            </IconButton>
+          </Tooltip>
+        )}
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {rightPanelTab === 'notes' && <NotesPanel />}
+        {rightPanelTab === 'notes'   && <NotesPanel />}
         {rightPanelTab === 'outline' && <OutlinePanel />}
+        {rightPanelTab === 'board'   && <CompactBoardPanel />}
       </div>
     </div>
   )
@@ -125,6 +143,7 @@ function EmptyNotes(): React.JSX.Element {
 
 function OutlinePanel(): React.JSX.Element {
   const scenes = useDocumentStore((s) => s.scenes)
+  const activeSceneId = useDocumentStore((s) => s.activeSceneId)
 
   if (scenes.length === 0) {
     return (
@@ -141,7 +160,13 @@ function OutlinePanel(): React.JSX.Element {
   return (
     <ul className="p-3 space-y-2">
       {scenes.map((scene, i) => (
-        <li key={scene.id} className="flex gap-2">
+        <li
+          key={scene.id}
+          className={[
+            'flex gap-2 rounded px-1 py-0.5 transition-colors',
+            activeSceneId === scene.id ? 'bg-so-active' : '',
+          ].join(' ')}
+        >
           <span className="text-xxs text-so-text-3 mt-0.5 w-5 text-right flex-shrink-0">
             {i + 1}
           </span>

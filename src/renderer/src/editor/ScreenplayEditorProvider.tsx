@@ -1,9 +1,13 @@
 /**
- * ScreenplayEditorProvider — Phase 2
+ * ScreenplayEditorProvider — Phase 4
  *
  * Creates and manages the singleton Tiptap editor instance.
- * Mounted at the App level so the editor state survives view switches
- * (Draft ↔ Page ↔ Board) without losing the document.
+ * Mounted at the App level so the editor state survives view switches.
+ *
+ * Phase 4 additions:
+ *   - Scene list is re-derived from editor JSON on every update (handleUpdate)
+ *   - Selection updates track which scene the cursor is in (onSelectionUpdate)
+ *   - jumpToSceneById is exported via a context accessor
  *
  * Usage:
  *   - Wrap <AppShell> with <ScreenplayEditorProvider>
@@ -18,6 +22,7 @@ import { SCREENPLAY_NODES } from './nodes'
 import { ScreenplayKeyboardExtension } from './ScreenplayKeyboardExtension'
 import { ScreenplayAutoFormatExtension } from './ScreenplayAutoFormatExtension'
 import { seedContent, SEED_SCENES } from './seedContent'
+import { deriveScenes, activeSceneAtPos } from './sceneUtils'
 import { useDocumentStore } from '../store/documentStore'
 
 // ── Context ───────────────────────────────────────────────────────────────────
@@ -35,75 +40,83 @@ interface ScreenplayEditorProviderProps {
 }
 
 export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderProps): React.JSX.Element {
-  const { setEditorContent, setStats, initScenes } = useDocumentStore()
+  const { setEditorContent, setStats, initScenes, setActiveScene, setCursor } = useDocumentStore()
 
+  // ── Called on every document change ────────────────────────────────────────
   const handleUpdate = useCallback(
     ({ editor: ed }: { editor: Editor }) => {
       const json = ed.getJSON()
       setEditorContent(json)
 
-      // Derive live stats from document
+      // Re-derive scene list, preserving synopsis / color / noteIds
+      const currentScenes = useDocumentStore.getState().scenes
+      const scenes = deriveScenes(json, currentScenes)
+      initScenes(scenes)
+
+      // Live stats
       const text = ed.getText()
       const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length
-      const sceneCount = json.content?.filter((n) => n.type === 'sceneHeading').length ?? 0
-      // Rough page estimate: ~55 lines per page, each block ≈ 1–3 lines
       const blockCount = json.content?.length ?? 0
       const pageCount = Math.max(1, Math.ceil(blockCount / 22))
-      setStats({ wordCount, pageCount, sceneCount })
+      setStats({ wordCount, pageCount, sceneCount: scenes.length })
     },
-    [setEditorContent, setStats],
+    [setEditorContent, setStats, initScenes],
   )
 
-  const editor = useEditor(
-    {
-      extensions: [
-        StarterKit.configure({
-          // Keep: document, text, history, gapcursor, dropcursor
-          // Disable all default block/mark types — screenplay uses custom nodes only
-          paragraph: false,
-          heading: false,
-          blockquote: false,
-          bulletList: false,
-          orderedList: false,
-          listItem: false,
-          codeBlock: false,
-          code: false,
-          horizontalRule: false,
-          hardBreak: false,
-          bold: false,
-          italic: false,
-          strike: false,
-        }),
-        ...SCREENPLAY_NODES,
-        // Phase 3 — smart keyboard flow + auto-formatting
-        ScreenplayKeyboardExtension,
-        ScreenplayAutoFormatExtension,
-      ],
-      content: seedContent,
-      autofocus: 'end',
-      onUpdate: handleUpdate,
-      onCreate: ({ editor: ed }) => {
-        // Populate the scene list from seed content on first load
-        initScenes(SEED_SCENES.map((s, i) => ({
-          id: s.id,
-          heading: s.heading,
-          synopsis: s.synopsis,
-          color: null,
-          order: i,
-          noteIds: [],
-        })))
-
-        // Fire initial stats
-        const json = ed.getJSON()
-        const text = ed.getText()
-        const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length
-        const sceneCount = json.content?.filter((n) => n.type === 'sceneHeading').length ?? 0
-        const blockCount = json.content?.length ?? 0
-        setEditorContent(json)
-        setStats({ wordCount, sceneCount, pageCount: Math.max(1, Math.ceil(blockCount / 22)) })
-      },
+  // ── Called on every cursor / selection change ───────────────────────────────
+  const handleSelectionUpdate = useCallback(
+    ({ editor: ed }: { editor: Editor }) => {
+      const cursorPos = ed.state.selection.$anchor.pos
+      setActiveScene(activeSceneAtPos(ed, cursorPos))
+      setCursor(cursorPos, ed.state.selection.$anchor.parentOffset)
     },
+    [setActiveScene, setCursor],
   )
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        paragraph: false,
+        heading: false,
+        blockquote: false,
+        bulletList: false,
+        orderedList: false,
+        listItem: false,
+        codeBlock: false,
+        code: false,
+        horizontalRule: false,
+        hardBreak: false,
+        bold: false,
+        italic: false,
+        strike: false,
+      }),
+      ...SCREENPLAY_NODES,
+      ScreenplayKeyboardExtension,
+      ScreenplayAutoFormatExtension,
+    ],
+    content: seedContent,
+    autofocus: 'end',
+    onUpdate: handleUpdate,
+    onSelectionUpdate: handleSelectionUpdate,
+    onCreate: ({ editor: ed }) => {
+      const json = ed.getJSON()
+
+      // Derive initial scene list from editor JSON, patching in seed synopses by position
+      const rawScenes = deriveScenes(json, [])
+      const scenes = rawScenes.map((s, i) => ({
+        ...s,
+        synopsis: SEED_SCENES[i]?.synopsis ?? s.synopsis,
+      }))
+      initScenes(scenes)
+
+      // Initial stats
+      const text = ed.getText()
+      const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length
+      const blockCount = json.content?.length ?? 0
+      setEditorContent(json)
+      setStats({ wordCount, sceneCount: scenes.length, pageCount: Math.max(1, Math.ceil(blockCount / 22)) })
+    },
+  })
 
   return (
     <ScreenplayEditorContext.Provider value={editor}>
@@ -112,7 +125,7 @@ export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderP
   )
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Re-exported helpers ───────────────────────────────────────────────────────
 
 /** Returns the current active screenplay block type name, or null */
 export function getActiveBlockType(editor: Editor): string | null {
