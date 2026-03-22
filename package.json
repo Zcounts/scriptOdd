@@ -1,9 +1,12 @@
 {
   "name": "scriptodd",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Local-only desktop screenwriting app for feature films",
   "main": "out/main/index.js",
-  "author": "scriptOdd",
+  "author": {
+    "name": "scriptOdd",
+    "email": "hello@scriptodd.app"
+  },
   "license": "MIT",
   "type": "module",
   "scripts": {
@@ -13,8 +16,12 @@
     "typecheck:node": "tsc -p tsconfig.node.json --noEmit",
     "typecheck:web": "tsc -p tsconfig.web.json --noEmit",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "test": "node --test src/tests/*.test.mjs",
     "package": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
     "@tiptap/pm": "^3.20.4",
@@ -43,20 +50,48 @@
   "build": {
     "appId": "com.scriptodd.app",
     "productName": "scriptOdd",
+    "copyright": "Copyright © 2025 scriptOdd",
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "files": [
       "out/**/*"
     ],
+    "extraMetadata": {
+      "version": "1.0.0"
+    },
     "win": {
-      "target": "nsis"
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico",
+      "publisherName": "scriptOdd",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "scriptOdd"
     },
     "mac": {
-      "target": "dmg"
+      "target": [
+        { "target": "dmg", "arch": ["x64", "arm64"] }
+      ],
+      "icon": "build/icon.icns",
+      "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "linux": {
-      "target": "AppImage"
+      "target": [
+        { "target": "AppImage", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.png",
+      "category": "Office",
+      "description": "Local-only desktop screenwriting app for feature films"
     }
   }
 }

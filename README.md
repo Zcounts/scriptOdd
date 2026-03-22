@@ -1,205 +1,159 @@
 # scriptOdd
 
-Windows-first desktop screenwriting software built for fast writing, clean screenplay formatting, and a modern editor-style UI.
+**Version 1.0.0** — Local-only desktop screenwriting for feature films.
 
-## Overview
+A keyboard-first screenplay editor with a modern UI. No account. No cloud. No subscription.
 
-[APP_NAME] is a local-only screenplay editor for feature films and short films.
+---
 
-It is designed to feel closer to a creative coding editor than a fake typewriter, while still producing properly formatted screenplay pages and keeping the writing flow fast.
+## Features
 
-The goal is not to clone Final Draft feature-for-feature. The goal is to build the core screenwriting experience that actually matters:
+- **Automatic screenplay formatting** — Smart Enter, Tab, and Shift+Tab navigate through block types (scene heading, action, character, dialogue, parenthetical, transition)
+- **Scene navigator** — Jump between scenes instantly from the sidebar
+- **Index card board** — Drag-and-drop scene reordering via visual board view
+- **Notes** — Per-scene and project-level notes
+- **Semantic color highlighting** — Character names and locations highlighted by entity, toggleable
+- **Entity autocomplete** — Remembered character names and scene headings for fast re-use
+- **Fountain import/export** — Full round-trip compatibility with the Fountain plain-text format
+- **PDF export** — WGA-standard margins, Courier New, title page, page numbers
+- **Autosave + crash recovery** — Saves every 60 seconds; recovers unsaved sessions after a crash
+- **Three themes** — Dark (default), Light, High-Contrast
+- **Resizable layout** — Sidebar, editor, right panel — all adjustable
+- **Focus mode** — Hides all chrome for distraction-free writing
 
-- automatic screenplay element formatting
-- fast keyboard-first writing flow
-- scene navigation
-- outline / index card board
-- notes
-- autocomplete and remembered entities
-- semantic color coding
-- local save/load
-- PDF export
+---
 
-## Core Principles
+## System Requirements
 
-- Fast to write in
-- Clean screenplay page output
-- Local-only and private
-- Customizable layout
-- Beautiful dark mode by default
-- White page mode available
-- Minimal friction between idea and page
+- **Windows 10 or 11** (64-bit) — primary platform
+- macOS 12+ or Ubuntu 20.04+ (via AppImage) — experimental
 
-## V1 Scope
+---
 
-### Writing
-- Feature film and short film workflows
-- Automatic screenplay element handling
-- Scene Heading
-- Action
-- Character
-- Dialogue
-- Parenthetical
-- Transition
-- Smart Enter / Tab / Shift+Tab behavior
-- Automatic character cue memory
-- Scene heading memory and autocomplete
-- Page-aware screenplay view
+## Getting Started
 
-### Navigation
-- Scene navigator sidebar
-- Index card / outline board
-- Drag to reorder scenes
-- Click scene to jump in editor
-- Optional split layout with editor + navigator + board
+### Install (Windows)
 
-### Notes
-- Per-scene notes
-- Inline notes / comments
-- Outline notes
-- Project notes
+1. Download `scriptOdd-Setup-1.0.0.exe` from the [Releases](../../releases) page
+2. Run the installer (no admin required — per-user install)
+3. Launch scriptOdd from the Start Menu or Desktop shortcut
 
-### Semantic Highlighting
-- Toggleable color coding like a code editor
-- Character names share a consistent color
-- Locations share a consistent color
-- Tagged props share a consistent color
-- Ability to turn all highlighting off for a clean script view
+### First Use
 
-### Persistence
-- Save/open local project files
-- Autosave and crash recovery
-- Recent projects
-- Export screenplay to PDF
-- Import/export Fountain
+The app opens with a sample screenplay. Start typing or press `Ctrl+N` for a blank project.
 
-## Non-Goals for V1
-- Collaboration
-- Cloud sync
-- Revision mode
-- Production reports
-- Scheduling
-- Call sheets
-- Budgeting
-- AI writing features
+### Keyboard Quick Reference
 
-## File Strategy
+| Shortcut | Action |
+|---|---|
+| `Enter` | Context-aware next element |
+| `Tab` | Cycle element type forward |
+| `Shift+Tab` | Cycle element type backward |
+| `Ctrl+Enter` | Insert new scene heading |
+| `Alt+↓` / `Alt+↑` | Jump to next/previous scene |
+| `Ctrl+1/2/3` | Draft / Page / Board view |
+| `Ctrl+\` | Toggle left sidebar |
+| `Ctrl+Shift+\` | Toggle right panel |
+| `Ctrl+Shift+F` | Focus mode |
+| `Ctrl+N` | New project |
+| `Ctrl+O` | Open project |
+| `Ctrl+S` | Save |
+| `Ctrl+Shift+S` | Save As |
+| `Ctrl+Shift+E` | Export PDF |
+| `Ctrl+Shift+T` | Cycle theme |
 
-[APP_NAME] uses a native local project file as the source of truth.
+---
 
-Recommended:
-- `.appname` project file for full editor state
-- `.fountain` import/export for portability
-- `.pdf` export for sharing and printing
+## File Formats
 
-The project file should preserve:
-- screenplay content
-- screenplay element metadata
-- notes
-- scene order
-- board cards
-- semantic tags
-- color settings
-- panel layout
-- theme preferences
-- recent autocomplete entities
+| Format | Use |
+|---|---|
+| `.sodd` | Native project format — saves full editor state |
+| `.fountain` | Import/export for interoperability with other tools |
+| `.pdf` | Export for reading, printing, and sharing |
 
-## UI Direction
+---
 
-Default UI:
-- dark creative theme
-- modern editor chrome
-- resizable panels
-- optional minimap / overview
-- clean typography
-- focus mode
+## Building from Source
 
-Secondary mode:
-- white screenplay page view for traditional reading / export preview
+```bash
+# Install dependencies
+npm install
 
-## Editor Behavior
+# Development mode
+npm run dev
 
-The writing experience should be keyboard-first.
+# Type check
+npm run typecheck
 
-Core behaviors:
-- Enter advances naturally to the next expected screenplay element
-- Tab cycles element type intentionally
-- Shift+Tab moves backward through likely element types
-- Character cues are auto-suggested from previously used characters
-- Scene headings are auto-suggested from previous headings
-- The editor should feel fast with minimal mouse dependence
+# Run tests
+npm run test
+
+# Build + package (Windows installer)
+npm run dist:win
+
+# Build + package (macOS DMG)
+npm run dist:mac
+
+# Build + package (Linux AppImage)
+npm run dist:linux
+```
+
+### Icon files (required for packaging)
+
+Place the following in `build/`:
+- `icon.ico` — Windows (256×256 multi-size ICO recommended)
+- `icon.icns` — macOS bundle
+- `icon.png` — Linux (512×512 PNG)
+
+---
 
 ## Architecture
 
-### App Shell
-- Electron
-- React
-- TypeScript
-- TailwindCSS
-- Zustand
+- **Electron 29** + **React 18** + **TypeScript 5**
+- **Tiptap 3** (ProseMirror-based rich text editor with custom screenplay nodes)
+- **Zustand 4** (state management)
+- **TailwindCSS 3** (styling)
+- **electron-builder** (packaging)
 
-### Editor
-- Screenplay-aware rich text editor with custom block types
-- Semantic tagging + syntax-style highlighting
-- Page view + draft view
+### Key source directories
 
-### Storage
-- Local filesystem only
-- Autosave snapshots
-- Recovery session handling
+```
+src/
+  main/          — Electron main process (IPC, file ops, menus)
+  preload/       — Secure context bridge
+  renderer/src/
+    editor/      — Tiptap extensions, keyboard, autoformat, semantic highlight
+    components/  — React UI (AppShell, views, panels, toolbars)
+    store/       — Zustand stores (document, project, layout, settings, app)
+    persistence/ — Serialization (format.ts, fountain.ts, pdf.ts)
+    hooks/       — useProjectOperations, useKeyboard, useTheme
+    types/       — TypeScript types
+src/tests/       — Automated tests (Node built-in runner)
+```
 
-## Planned Views
+---
 
-- Draft View
-- Page View
-- Navigator
-- Index Card / Outline Board
-- Notes Panel
-- Project Search
+## Testing
 
-## Roadmap
+```bash
+npm run test
+# 33 tests covering: Fountain import/export, project format, scene derivation
+```
 
-### Phase 1
-Project scaffold, desktop shell, layout system, base store
+---
 
-### Phase 2
-Screenplay document model and editor shell
+## Known Limitations (v1.0.0)
 
-### Phase 3
-Automatic formatting and keyboard flow
+- No collaborative editing
+- No cloud sync or backup
+- No revision tracking or compare mode
+- No Final Draft (FDX) import/export
+- No spell check (relies on OS/browser spell check)
+- PDF page numbers via CSS `@page` counter (Electron 29 — works on Windows/Linux; macOS may vary)
 
-### Phase 4
-Navigator and index card board
+---
 
-### Phase 5
-Autocomplete, notes, remembered entities, semantic color coding
+## License
 
-### Phase 6
-Themes, preferences, layout customization, page settings
-
-### Phase 7
-Save/load, autosave, recovery, Fountain import/export, PDF export
-
-### Phase 8
-QA, bug fixing, performance tuning, packaging, release prep
-
-## Development Goals
-
-- Works smoothly on Windows 11
-- Opens quickly
-- Handles large scripts reliably
-- No data loss during crashes
-- Exported PDFs are clean and readable
-- Keyboard flow feels professional
-
-## Future Ideas
-- FDX import/export
-- Beat board enhancements
-- Script statistics
-- Character/location reports
-- Side-by-side revision compare
-- Production breakdown tagging
-
-## Status
-
-In development.
+MIT — see [LICENSE](LICENSE)

@@ -15,6 +15,7 @@ import { useAppStore } from './store/appStore'
 import { useLayoutStore } from './store/layoutStore'
 import { ScreenplayEditorProvider } from './editor/ScreenplayEditorProvider'
 import { useProjectOperations } from './hooks/useProjectOperations'
+import { ToastContainer } from './components/ui/ToastContainer'
 
 // ── Crash recovery banner ─────────────────────────────────────────────────────
 
@@ -180,6 +181,7 @@ function AppInner(): React.JSX.Element {
         <CrashRecoveryBanner onRestore={handleRestore} onDismiss={handleDismissRecovery} />
       )}
       <AppShell />
+      <ToastContainer />
     </>
   )
 }

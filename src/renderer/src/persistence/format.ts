@@ -163,7 +163,6 @@ export function makeEmptyEditorContent(): JSONContent {
           tags: [],
           noteIds: [],
         },
-        content: [{ type: 'text', text: '' }],
       },
     ],
   }

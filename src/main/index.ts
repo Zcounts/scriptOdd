@@ -4,6 +4,9 @@ import { createWindow } from './window'
 import { buildMenu } from './menu'
 import { registerIpcHandlers } from './ipc'
 
+// Ensure the app name is set before any window is created
+app.setName('scriptOdd')
+
 // Security: disable navigation to external URLs
 app.on('web-contents-created', (_, contents) => {
   contents.on('will-navigate', (event, url) => {

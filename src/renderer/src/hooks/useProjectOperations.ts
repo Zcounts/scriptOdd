@@ -22,6 +22,7 @@ import { useAutocompleteStore } from '../store/autocompleteStore'
 import { useLayoutStore } from '../store/layoutStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useAppStore } from '../store/appStore'
+import { useToastStore } from '../store/toastStore'
 import {
   serializeProject,
   deserializeProject,
@@ -84,6 +85,8 @@ function gatherSettings(): SoddSettings {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useProjectOperations() {
+  const toast = useToastStore.getState().push
+
   // ── Serialize current state into the project file string ──────────────────
 
   const buildProjectData = useCallback((): string | null => {
@@ -207,33 +210,48 @@ export function useProjectOperations() {
     if (!window.api) return
 
     const result = await window.api.openProject()
-    if (result.cancelled || !result.data || !result.filePath) return
+    if (result.cancelled) return
+
+    if (!result.filePath) {
+      toast('Could not determine file path.', 'error')
+      return
+    }
+
+    if (result.error || !result.data) {
+      toast(`Failed to read file: ${result.error ?? 'unknown error'}`, 'error')
+      return
+    }
 
     // Detect file type by extension
     const fp = result.filePath
     const isFountain = fp.endsWith('.fountain') || fp.endsWith('.txt')
 
     if (isFountain) {
-      const { content, meta } = fountainToJSON(result.data)
-      const fullMeta: ProjectMeta = {
-        ...makeDefaultMeta(),
-        ...meta,
-        title: meta.title ?? 'Imported Script',
+      try {
+        const { content, meta } = fountainToJSON(result.data)
+        const fullMeta: ProjectMeta = {
+          ...makeDefaultMeta(),
+          ...meta,
+          title: meta.title ?? 'Imported Script',
+        }
+        useProjectStore.getState().setProject(fullMeta, fp)
+        useDocumentStore.setState({ notes: [], scenes: [] })
+        useDocumentStore.getState().setPendingLoad(content)
+        useAppStore.getState().addRecentProject({
+          id: fullMeta.id,
+          name: fullMeta.title,
+          filePath: fp,
+          lastOpenedAt: new Date().toISOString(),
+        })
+      } catch (err) {
+        toast(`Failed to import Fountain file: ${String(err)}`, 'error')
+        return
       }
-      useProjectStore.getState().setProject(fullMeta, fp)
-      useDocumentStore.setState({ notes: [], scenes: [] })
-      useDocumentStore.getState().setPendingLoad(content)
-      useAppStore.getState().addRecentProject({
-        id: fullMeta.id,
-        name: fullMeta.title,
-        filePath: fp,
-        lastOpenedAt: new Date().toISOString(),
-      })
     } else {
       // Native .sodd format
       const parsed = deserializeProject(result.data)
       if (!parsed.ok || !parsed.file) {
-        console.error('[open] Failed to parse project file:', parsed.error)
+        toast(`Could not open project: ${parsed.error ?? 'invalid file'}`, 'error')
         return
       }
       hydrateFromFile(parsed.file, result.filePath)
@@ -241,7 +259,7 @@ export function useProjectOperations() {
 
     // Clear crash recovery since we just loaded a clean file
     window.api.deleteCrashRecovery().catch(() => {})
-  }, [hydrateFromFile])
+  }, [hydrateFromFile, toast])
 
   // ── Save project ──────────────────────────────────────────────────────────
 
@@ -268,8 +286,10 @@ export function useProjectOperations() {
       }
       // Clean crash recovery after successful save
       window.api.deleteCrashRecovery().catch(() => {})
+    } else if (!result.success && !result.cancelled) {
+      toast(`Save failed: ${result.error ?? 'unknown error'}`, 'error')
     }
-  }, [buildProjectData])
+  }, [buildProjectData, toast])
 
   // ── Save As ───────────────────────────────────────────────────────────────
 
@@ -294,8 +314,10 @@ export function useProjectOperations() {
         })
       }
       window.api.deleteCrashRecovery().catch(() => {})
+    } else if (!result.success && !result.cancelled) {
+      toast(`Save As failed: ${result.error ?? 'unknown error'}`, 'error')
     }
-  }, [buildProjectData])
+  }, [buildProjectData, toast])
 
   // ── Export PDF ────────────────────────────────────────────────────────────
 
@@ -307,13 +329,16 @@ export function useProjectOperations() {
 
     if (!editorContent) return
 
+    toast('Exporting PDF…', 'info')
     const html = buildPdfHtml(editorContent, meta)
     const result = await window.api.exportPDF({ html, title: meta?.title })
 
-    if (!result.success && !result.cancelled) {
-      console.error('[exportPDF] Failed:', result.error)
+    if (result.success) {
+      toast('PDF exported successfully.', 'success')
+    } else if (!result.cancelled) {
+      toast(`PDF export failed: ${result.error ?? 'unknown error'}`, 'error')
     }
-  }, [])
+  }, [toast])
 
   // ── Export Fountain ───────────────────────────────────────────────────────
 
@@ -331,10 +356,12 @@ export function useProjectOperations() {
       title: meta?.title,
     })
 
-    if (!result.success && !result.cancelled) {
-      console.error('[exportFountain] Failed:', result.error)
+    if (result.success) {
+      toast('Fountain file exported.', 'success')
+    } else if (!result.cancelled) {
+      toast(`Fountain export failed: ${result.error ?? 'unknown error'}`, 'error')
     }
-  }, [])
+  }, [toast])
 
   // ── Crash recovery ────────────────────────────────────────────────────────
 
