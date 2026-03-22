@@ -1,13 +1,17 @@
 name: Release
 
 # Triggers:
-#   - Pushed version tags (v*) → full build + GitHub Release
 #   - workflow_dispatch       → full build only (no release created)
+#   - Pushed version tags (v*) → full build + GitHub Release
 on:
+  workflow_dispatch:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
+
+# Default to read-only; the release job elevates to write for asset upload.
+permissions:
+  contents: read
 
 jobs:
   # ── 1. Verify ──────────────────────────────────────────────────────────────
