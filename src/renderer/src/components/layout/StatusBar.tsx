@@ -16,7 +16,7 @@ export function StatusBar(): React.JSX.Element {
     : 'Not saved'
 
   return (
-    <div className="flex items-center h-6 px-3 bg-so-bg border-t border-so-border-dim flex-shrink-0 gap-3 overflow-hidden">
+    <div className="chrome-surface flex items-center h-8 px-4 border-t border-so-border flex-shrink-0 gap-3 overflow-hidden">
       {/* Modified indicator */}
       <StatusItem>
         <Circle
@@ -32,18 +32,18 @@ export function StatusBar(): React.JSX.Element {
 
       {/* Document stats */}
       <StatusItem>
-        <span className="text-so-text-3">
+        <span className="text-so-text-3 uppercase tracking-[0.16em]">
           {pageCount} {pageCount === 1 ? 'pg' : 'pgs'}
         </span>
       </StatusItem>
 
       <StatusItem>
-        <span className="text-so-text-3">{wordCount.toLocaleString()} words</span>
+        <span className="text-so-text-3 uppercase tracking-[0.16em]">{wordCount.toLocaleString()} words</span>
       </StatusItem>
 
       {sceneCount > 0 && (
         <StatusItem>
-          <span className="text-so-text-3">
+          <span className="text-so-text-3 uppercase tracking-[0.16em]">
             {sceneCount} {sceneCount === 1 ? 'scene' : 'scenes'}
           </span>
         </StatusItem>
@@ -54,7 +54,7 @@ export function StatusBar(): React.JSX.Element {
 
       {/* Cursor position */}
       <StatusItem>
-        <span className="text-so-text-3">
+        <span className="text-so-text-3 uppercase tracking-[0.16em]">
           Ln {cursorLine}, Col {cursorColumn}
         </span>
       </StatusItem>
@@ -70,7 +70,7 @@ export function StatusBar(): React.JSX.Element {
 
       {/* Theme */}
       <StatusItem>
-        <span className="text-so-text-3">{theme === 'dark' ? 'Dark' : 'Light'}</span>
+        <span className="text-so-text-3 uppercase tracking-[0.16em]">{theme === 'dark' ? 'Dark' : theme === 'light' ? 'Light' : 'Draft'}</span>
       </StatusItem>
     </div>
   )
@@ -78,14 +78,14 @@ export function StatusBar(): React.JSX.Element {
 
 function StatusItem({ children }: { children: React.ReactNode }): React.JSX.Element {
   return (
-    <div className="flex items-center gap-1 text-xxs">
+    <div className="flex items-center gap-1.5 text-[10px]">
       {children}
     </div>
   )
 }
 
 function StatusDivider(): React.JSX.Element {
-  return <div className="w-px h-3 bg-so-border-dim flex-shrink-0" />
+  return <div className="w-px h-4 bg-so-border-dim flex-shrink-0" />
 }
 
 function formatRelativeTime(date: Date): string {

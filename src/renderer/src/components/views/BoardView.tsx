@@ -1,57 +1,30 @@
-/**
- * BoardView — Phase 4
- *
- * Full index-card outline board:
- *   - Each card shows scene number, heading, synopsis, notes count, and tags
- *   - Drag-and-drop to reorder scenes
- *   - Click a card to jump to that scene in the editor (switches to Draft view)
- *   - Stays in sync with the screenplay document via documentStore
- *
- * Extension points left clean for future phases:
- *   - Notes count badge wired to scene.noteIds (full notes in Phase 5)
- *   - Tags display ready; tag editing is a future feature
- *   - Color label bar wired to scene.color
- */
-
 import React, { useState, useRef } from 'react'
-import { LayoutGrid, Film, StickyNote, Tag } from 'lucide-react'
+import { LayoutGrid, Film, StickyNote } from 'lucide-react'
 import { useDocumentStore } from '../../store/documentStore'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useScreenplayEditor } from '../../editor/ScreenplayEditorProvider'
 import { jumpToSceneById, reorderScenesInEditor } from '../../editor/sceneUtils'
 import type { Scene } from '../../types'
 
-// ── Exported board (standalone full-screen view) ──────────────────────────────
-
 export function BoardView(): React.JSX.Element {
   const scenes = useDocumentStore((s) => s.scenes)
   const activeSceneId = useDocumentStore((s) => s.activeSceneId)
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Toolbar */}
-      <div className="flex items-center h-8 px-4 border-b border-so-border-dim bg-so-surface flex-shrink-0">
-        <LayoutGrid size={12} className="text-so-text-3 mr-2" />
-        <span className="text-xxs text-so-text-3 uppercase tracking-wider">Board View</span>
-        <div className="flex-1" />
-        <span className="text-xxs text-so-text-3 opacity-60">
-          Drag cards to reorder · Click to edit
-        </span>
+    <div className="flex flex-col h-full w-full overflow-hidden view-canvas">
+      <div className="editor-chrome flex items-center h-11 px-5 flex-shrink-0 gap-3">
+        <LayoutGrid size={13} strokeWidth={1.7} className="text-so-accent" />
+        <span className="text-[11px] uppercase tracking-[0.24em] text-so-text-2">Board</span>
+        <div className="chrome-divider" />
+        <span className="text-[11px] uppercase tracking-[0.18em] text-so-text-3">Drag cards to reorder · Click to edit</span>
       </div>
 
-      {/* Canvas */}
       <div className="flex-1 overflow-auto p-6">
-        {scenes.length === 0 ? (
-          <EmptyBoard />
-        ) : (
-          <SceneBoard scenes={scenes} activeSceneId={activeSceneId} />
-        )}
+        {scenes.length === 0 ? <EmptyBoard /> : <SceneBoard scenes={scenes} activeSceneId={activeSceneId} />}
       </div>
     </div>
   )
 }
-
-// ── Compact board for the right panel (editor + board layout) ─────────────────
 
 export function CompactBoardPanel(): React.JSX.Element {
   const scenes = useDocumentStore((s) => s.scenes)
@@ -75,8 +48,6 @@ export function CompactBoardPanel(): React.JSX.Element {
   )
 }
 
-// ── Scene board grid ──────────────────────────────────────────────────────────
-
 interface SceneBoardProps {
   scenes: Scene[]
   activeSceneId: string | null
@@ -87,7 +58,6 @@ function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Eleme
   const editor = useScreenplayEditor()
   const { setActiveView } = useLayoutStore()
 
-  // ── Drag state ──────────────────────────────────────────────────────────
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropPos, setDropPos] = useState<'before' | 'after'>('after')
@@ -105,7 +75,6 @@ function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Eleme
     if (id === draggedId) return
     setDragOverId(id)
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-    // In a grid, use left/right halves to determine before/after
     setDropPos(e.clientX < rect.left + rect.width / 2 ? 'before' : 'after')
   }
 
@@ -152,18 +121,13 @@ function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Eleme
 
   function handleCardClick(sceneId: string) {
     if (editor) {
-      // Switch to draft view and jump
       setActiveView('draft')
-      // Small delay so the view switches before scrolling
       setTimeout(() => jumpToSceneById(editor, sceneId), 50)
     }
   }
 
   return (
-    <div
-      className="flex flex-wrap gap-4 content-start"
-      onDragEnd={handleDragEnd}
-    >
+    <div className="flex flex-wrap gap-4 content-start" onDragEnd={handleDragEnd}>
       {scenes.map((scene, i) => {
         const isDragging = draggedId === scene.id
         const isOver = dragOverId === scene.id
@@ -179,7 +143,6 @@ function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Eleme
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, scene.id)}
           >
-            {/* Drop indicator — left edge */}
             {isOver && dropPos === 'before' && (
               <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-so-accent z-10 pointer-events-none rounded" />
             )}
@@ -192,7 +155,6 @@ function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Eleme
               onClick={() => handleCardClick(scene.id)}
             />
 
-            {/* Drop indicator — right edge */}
             {isOver && dropPos === 'after' && (
               <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-so-accent z-10 pointer-events-none rounded" />
             )}
@@ -202,8 +164,6 @@ function SceneBoard({ scenes, activeSceneId }: SceneBoardProps): React.JSX.Eleme
     </div>
   )
 }
-
-// ── Index card ────────────────────────────────────────────────────────────────
 
 interface SceneCardProps {
   scene: Scene
@@ -223,20 +183,18 @@ function SceneCard({ scene, number, isDragging = false, isActive = false, onClic
       onClick={onClick}
       onKeyDown={(e) => e.key === 'Enter' && onClick?.()}
       className={[
-        'w-52 min-h-32 rounded-lg bg-so-elevated border flex flex-col',
-        'cursor-pointer transition-all duration-150 outline-none',
-        'hover:shadow-md hover:-translate-y-px',
+        'w-56 min-h-36 rounded-[22px] border flex flex-col cursor-pointer transition-all duration-150 outline-none',
+        'bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.02))] shadow-[0_18px_34px_rgba(0,0,0,0.12)]',
+        'hover:-translate-y-0.5 hover:shadow-[0_24px_44px_rgba(0,0,0,0.16)]',
         'focus-visible:ring-2 focus-visible:ring-so-accent focus-visible:ring-offset-1',
         isDragging ? 'opacity-40 scale-95 cursor-grabbing' : '',
-        isActive ? 'border-so-accent shadow-sm' : 'border-so-border',
+        isActive ? 'border-[color:rgba(202,162,75,0.4)]' : 'border-so-border',
       ].join(' ')}
-      style={accentColor ? { borderTopColor: accentColor, borderTopWidth: 3 } : {}}
+      style={accentColor ? { borderTopColor: accentColor, borderTopWidth: 3 } : { backgroundColor: 'rgba(255,255,255,0.05)' }}
     >
-      {/* Card header */}
-      <div className="flex items-center gap-1.5 px-3 pt-2.5 pb-1">
+      <div className="flex items-center gap-1.5 px-3 pt-3 pb-1.5">
         <span className="text-xxs text-so-text-3 font-mono tabular-nums">{String(number).padStart(2, '0')}</span>
         <div className="flex-1" />
-        {/* Notes count placeholder — wired to noteIds */}
         {scene.noteIds.length > 0 && (
           <span className="flex items-center gap-0.5 text-xxs text-so-text-3">
             <StickyNote size={9} />
@@ -245,103 +203,45 @@ function SceneCard({ scene, number, isDragging = false, isActive = false, onClic
         )}
       </div>
 
-      {/* Heading */}
-      <div className="px-3 pb-1">
-        <p className="text-xs font-semibold text-so-scene uppercase leading-tight">
-          {scene.heading || 'UNTITLED SCENE'}
-        </p>
+      <div className="px-3 pb-1.5">
+        <p className="text-xs font-semibold text-so-text uppercase leading-tight">{scene.heading || 'UNTITLED SCENE'}</p>
       </div>
 
-      {/* Synopsis */}
       {scene.synopsis && (
         <div className="px-3 pb-2 flex-1">
-          <p className="text-xxs text-so-text-2 leading-relaxed line-clamp-4">
-            {scene.synopsis}
-          </p>
+          <p className="text-xxs text-so-text-2 leading-relaxed line-clamp-4">{scene.synopsis}</p>
         </div>
       )}
 
-      {/* Tags row — extension point for future tag editing */}
-      {/* Tags would come from scene.tags once the data model is extended */}
-      <div className="px-3 pb-2.5 flex flex-wrap gap-1 mt-auto">
-        {/* placeholder — tags currently stored on blocks, not scenes */}
-        {/* When tag support lands on SceneMeta, render here */}
-      </div>
+
     </div>
   )
 }
 
-// ── Compact card (for right panel board tab) ──────────────────────────────────
-
-interface CompactCardProps {
-  scene: Scene
-  number: number
-  isActive: boolean
-}
-
-function CompactCard({ scene, number, isActive }: CompactCardProps): React.JSX.Element {
-  const editor = useScreenplayEditor()
-  const { setActiveView } = useLayoutStore()
-  const setActiveScene = useDocumentStore((s) => s.setActiveScene)
-
-  function handleClick() {
-    setActiveScene(scene.id)
-    if (editor) {
-      setActiveView('draft')
-      setTimeout(() => jumpToSceneById(editor, scene.id), 50)
-    }
-  }
-
+function CompactCard({ scene, number, isActive = false }: { scene: Scene; number: number; isActive?: boolean }) {
   return (
-    <button
-      type="button"
-      onClick={handleClick}
+    <div
       className={[
-        'w-full text-left rounded-md border p-2.5 transition-all duration-100',
-        'hover:border-so-accent hover:bg-so-active',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-so-accent',
-        isActive ? 'border-so-accent bg-so-active' : 'border-so-border bg-so-elevated',
+        'rounded-2xl border px-3 py-2.5 bg-white/5 transition-colors',
+        isActive ? 'border-[color:rgba(202,162,75,0.4)] bg-[rgba(202,162,75,0.1)]' : 'border-so-border',
       ].join(' ')}
-      style={scene.color ? { borderLeftColor: scene.color, borderLeftWidth: 3 } : {}}
     >
-      <div className="flex items-center gap-1.5 mb-1">
-        <span className="text-xxs text-so-text-3 font-mono">{String(number).padStart(2, '0')}</span>
-        {scene.noteIds.length > 0 && (
-          <span className="ml-auto flex items-center gap-0.5 text-xxs text-so-text-3">
-            <StickyNote size={9} />
-          </span>
-        )}
+      <div className="flex items-center gap-2 text-xxs uppercase tracking-[0.18em] text-so-text-3">
+        <span>{String(number).padStart(2, '0')}</span>
+        <span>Scene</span>
       </div>
-      <p className="text-xs font-semibold text-so-scene uppercase leading-tight truncate">
-        {scene.heading || 'UNTITLED SCENE'}
-      </p>
-      {scene.synopsis && (
-        <p className="text-xxs text-so-text-3 mt-0.5 line-clamp-2 leading-relaxed">
-          {scene.synopsis}
-        </p>
-      )}
-    </button>
+      <p className="mt-1 text-xs font-medium text-so-text">{scene.heading || 'Untitled scene'}</p>
+      {scene.synopsis && <p className="mt-1 text-xxs leading-relaxed text-so-text-2">{scene.synopsis}</p>}
+    </div>
   )
 }
 
-// ── Empty state ───────────────────────────────────────────────────────────────
-
 function EmptyBoard(): React.JSX.Element {
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-4 text-center min-h-64">
-      <div className="w-16 h-16 rounded-xl bg-so-elevated border border-so-border flex items-center justify-center">
-        <Film size={28} className="text-so-text-3" />
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-so-text-2">No scenes yet</p>
-        <p className="text-xs text-so-text-3 max-w-xs leading-relaxed">
-          Switch to Draft view and start writing scene headings. Index cards will appear here automatically.
-        </p>
-      </div>
-      <p className="text-xxs text-so-text-3 italic flex items-center gap-1.5">
-        <Tag size={11} />
-        Drag cards to reorder · Color labels · Act grouping coming soon
-      </p>
+    <div className="mx-auto mt-16 max-w-md rounded-[28px] border border-so-border bg-white/5 px-8 py-10 text-center shadow-[0_20px_40px_rgba(0,0,0,0.12)]">
+      <Film size={24} className="mx-auto text-so-accent" />
+      <p className="mt-3 text-sm text-so-text">No scenes yet</p>
+      <p className="mt-1 text-xs text-so-text-3">Your outline cards will appear here as you write scene headings.</p>
     </div>
   )
 }

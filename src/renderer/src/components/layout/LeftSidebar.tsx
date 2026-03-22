@@ -47,9 +47,9 @@ export function LeftSidebar(): React.JSX.Element {
   const { leftSidebarTab, setLeftSidebarTab } = useLayoutStore()
 
   return (
-    <div className="flex h-full bg-so-surface border-r border-so-border overflow-hidden">
+    <div className="shell-panel flex h-full border-r overflow-hidden">
       {/* Icon rail */}
-      <div className="flex flex-col items-center gap-1 py-2 px-1 w-9 border-r border-so-border-dim bg-so-bg flex-shrink-0">
+      <div className="flex flex-col items-center gap-1 py-3 px-1.5 w-12 border-r border-so-border-dim bg-[rgba(0,0,0,0.08)] flex-shrink-0">
         {TABS.map((tab) => (
           <Tooltip key={tab.id} content={tab.label} side="right">
             <IconButton
