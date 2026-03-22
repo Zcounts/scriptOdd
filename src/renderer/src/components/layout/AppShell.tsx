@@ -135,7 +135,7 @@ export function AppShell(): React.JSX.Element {
   const showRight = rightPanelVisible && !focusMode
 
   return (
-    <div className="flex flex-col h-full w-full bg-so-bg overflow-hidden">
+    <div className="app-shell-root flex flex-col h-full w-full overflow-hidden">
       {/* Custom titlebar */}
       <TitleBar />
 
@@ -218,7 +218,7 @@ interface EditorAreaProps {
 
 function EditorArea({ view, focusMode }: EditorAreaProps): React.JSX.Element {
   return (
-    <div className="flex flex-col h-full w-full bg-so-bg overflow-hidden">
+    <div className="app-shell-root flex flex-col h-full w-full overflow-hidden">
       {view === 'draft' && <DraftView focusMode={focusMode} />}
       {view === 'page'  && <PageView  focusMode={focusMode} />}
       {view === 'board' && <BoardView />}

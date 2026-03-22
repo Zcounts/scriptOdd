@@ -47,9 +47,9 @@ export function RightPanel(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-col h-full bg-so-surface border-l border-so-border overflow-hidden">
+    <div className="shell-panel flex flex-col h-full border-l overflow-hidden">
       {/* Tab bar */}
-      <div className="flex items-center border-b border-so-border-dim bg-so-bg flex-shrink-0">
+      <div className="editor-chrome flex items-center border-b border-so-border-dim flex-shrink-0">
         {TABS.map((tab) => (
           <button
             key={tab.id}
