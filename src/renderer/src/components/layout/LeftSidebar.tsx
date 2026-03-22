@@ -1,15 +1,18 @@
 /**
- * LeftSidebar — Phase 4
+ * LeftSidebar — Phase 5
  *
- * Navigator panel now supports:
- *   - Click scene → jump editor to that scene heading
- *   - Drag-and-drop reordering → updates both store and editor document
- *   - Note indicator (dot) when scene has attached noteIds
- *   - Active scene highlight driven by cursor position
+ * Four tabs:
+ *   - Navigator  : scene list with drag-and-drop reordering
+ *   - Characters : remembered character names with semantic color swatches
+ *   - Locations  : remembered location names with semantic color swatches
+ *   - Props      : manually registered props with color swatches + CRUD
+ *
+ * Character/location color swatches match the semantic highlight colors shown
+ * in the editor — same color index = same visual color everywhere.
  */
 
 import React, { useState, useRef } from 'react'
-import { List, Users, MapPin, Film, GripVertical, StickyNote } from 'lucide-react'
+import { List, Users, MapPin, Film, GripVertical, StickyNote, Tag, X, Plus } from 'lucide-react'
 import { useLayoutStore } from '../../store/layoutStore'
 import { useDocumentStore } from '../../store/documentStore'
 import { useAutocompleteStore } from '../../store/autocompleteStore'
@@ -19,10 +22,25 @@ import { IconButton } from '../ui/IconButton'
 import { Tooltip } from '../ui/Tooltip'
 import type { Scene, SidebarTab } from '../../types'
 
+// ── Semantic color swatch lookup ──────────────────────────────────────────────
+
+/** Returns a CSS class that renders the semantic character color for index ci */
+function charSwatchClass(ci: number): string {
+  return `sem-swatch-char sem-swatch-char-${ci}`
+}
+
+/** Returns a CSS class that renders the semantic location color for index li */
+function locSwatchClass(li: number): string {
+  return `sem-swatch-loc sem-swatch-loc-${li}`
+}
+
+// ── Tab definition ────────────────────────────────────────────────────────────
+
 const TABS: { id: SidebarTab; label: string; icon: React.ReactNode }[] = [
   { id: 'navigator',  label: 'Scene Navigator', icon: <List size={15} /> },
   { id: 'characters', label: 'Characters',       icon: <Users size={15} /> },
   { id: 'locations',  label: 'Locations',        icon: <MapPin size={15} /> },
+  { id: 'props',      label: 'Props',            icon: <Tag size={15} /> },
 ]
 
 export function LeftSidebar(): React.JSX.Element {
@@ -50,9 +68,10 @@ export function LeftSidebar(): React.JSX.Element {
       <div className="flex flex-col flex-1 min-w-0">
         <SidebarHeader tab={leftSidebarTab} />
         <div className="flex-1 overflow-y-auto">
-          {leftSidebarTab === 'navigator' && <NavigatorPanel />}
+          {leftSidebarTab === 'navigator'  && <NavigatorPanel />}
           {leftSidebarTab === 'characters' && <CharactersPanel />}
-          {leftSidebarTab === 'locations' && <LocationsPanel />}
+          {leftSidebarTab === 'locations'  && <LocationsPanel />}
+          {leftSidebarTab === 'props'      && <PropsPanel />}
         </div>
       </div>
     </div>
@@ -61,9 +80,10 @@ export function LeftSidebar(): React.JSX.Element {
 
 function SidebarHeader({ tab }: { tab: SidebarTab }): React.JSX.Element {
   const labels: Record<SidebarTab, string> = {
-    navigator: 'Scenes',
+    navigator:  'Scenes',
     characters: 'Characters',
-    locations: 'Locations',
+    locations:  'Locations',
+    props:      'Props',
   }
   return (
     <div className="flex items-center justify-between px-3 py-2 border-b border-so-border-dim">
@@ -83,7 +103,6 @@ function NavigatorPanel(): React.JSX.Element {
   const reorderScenes = useDocumentStore((s) => s.reorderScenes)
   const editor = useScreenplayEditor()
 
-  // ── Drag state ────────────────────────────────────────────────────────────
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverId, setDragOverId] = useState<string | null>(null)
   const [dropPos, setDropPos] = useState<'before' | 'after'>('after')
@@ -99,8 +118,6 @@ function NavigatorPanel(): React.JSX.Element {
     )
   }
 
-  // ── Drag handlers ─────────────────────────────────────────────────────────
-
   function handleDragStart(e: React.DragEvent, id: string) {
     setDraggedId(id)
     e.dataTransfer.effectAllowed = 'move'
@@ -112,7 +129,6 @@ function NavigatorPanel(): React.JSX.Element {
     e.dataTransfer.dropEffect = 'move'
     if (id === draggedId) return
     setDragOverId(id)
-    // Determine whether to drop before or after based on pointer Y
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     setDropPos(e.clientY < rect.top + rect.height / 2 ? 'before' : 'after')
   }
@@ -133,7 +149,6 @@ function NavigatorPanel(): React.JSX.Element {
     e.preventDefault()
     dragCounter.current = 0
     setDragOverId(null)
-
     const sourceId = draggedId
     setDraggedId(null)
     if (!sourceId || sourceId === targetId) return
@@ -143,7 +158,6 @@ function NavigatorPanel(): React.JSX.Element {
     const tgtIdx = ids.indexOf(targetId)
     if (srcIdx === -1 || tgtIdx === -1) return
 
-    // Build new order
     const newIds = [...ids]
     newIds.splice(srcIdx, 1)
     const insertAt = dropPos === 'before' ? newIds.indexOf(targetId) : newIds.indexOf(targetId) + 1
@@ -159,14 +173,10 @@ function NavigatorPanel(): React.JSX.Element {
     dragCounter.current = 0
   }
 
-  // ── Click to jump ─────────────────────────────────────────────────────────
-
   function handleSceneClick(scene: Scene) {
     setActiveScene(scene.id)
     if (editor) jumpToSceneById(editor, scene.id)
   }
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <ul className="py-1 select-none" onDragEnd={handleDragEnd}>
@@ -184,12 +194,8 @@ function NavigatorPanel(): React.JSX.Element {
             onDragOver={(e) => handleDragOver(e, scene.id)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, scene.id)}
-            className={[
-              'relative group',
-              isDragging ? 'opacity-40' : '',
-            ].join(' ')}
+            className={['relative group', isDragging ? 'opacity-40' : ''].join(' ')}
           >
-            {/* Drop indicator — line before */}
             {isOver && dropPos === 'before' && (
               <div className="absolute top-0 left-0 right-0 h-0.5 bg-so-accent z-10 pointer-events-none" />
             )}
@@ -204,20 +210,12 @@ function NavigatorPanel(): React.JSX.Element {
               ].join(' ')}
               onClick={() => handleSceneClick(scene)}
             >
-              {/* Drag handle */}
-              <span
-                className="flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 text-so-text-3 cursor-grab active:cursor-grabbing"
-                aria-hidden
-              >
+              <span className="flex-shrink-0 mt-0.5 opacity-0 group-hover:opacity-40 text-so-text-3 cursor-grab active:cursor-grabbing" aria-hidden>
                 <GripVertical size={11} />
               </span>
-
-              {/* Scene number */}
               <span className="text-xxs text-so-text-3 mt-0.5 w-4 text-right flex-shrink-0 font-mono">
                 {i + 1}
               </span>
-
-              {/* Scene info */}
               <span className="flex-1 min-w-0">
                 <span className="block text-xs font-medium truncate text-so-scene">
                   {scene.heading || 'UNTITLED SCENE'}
@@ -228,8 +226,6 @@ function NavigatorPanel(): React.JSX.Element {
                   </span>
                 )}
               </span>
-
-              {/* Note indicator placeholder */}
               {scene.noteIds.length > 0 && (
                 <Tooltip content={`${scene.noteIds.length} note${scene.noteIds.length > 1 ? 's' : ''}`} side="right">
                   <span className="flex-shrink-0 mt-0.5 text-so-text-3 opacity-60">
@@ -239,7 +235,6 @@ function NavigatorPanel(): React.JSX.Element {
               )}
             </button>
 
-            {/* Drop indicator — line after */}
             {isOver && dropPos === 'after' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-so-accent z-10 pointer-events-none" />
             )}
@@ -253,7 +248,7 @@ function NavigatorPanel(): React.JSX.Element {
 // ── Characters panel ──────────────────────────────────────────────────────────
 
 function CharactersPanel(): React.JSX.Element {
-  const characters = useAutocompleteStore((s) => s.characters)
+  const { characters, characterColors } = useAutocompleteStore()
 
   if (characters.length === 0) {
     return (
@@ -267,14 +262,21 @@ function CharactersPanel(): React.JSX.Element {
 
   return (
     <ul className="py-1">
-      {characters.map((name) => (
-        <li key={name}>
-          <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-so-active transition-colors">
-            <span className="w-2 h-2 rounded-full bg-so-character flex-shrink-0" />
-            <span className="text-xs text-so-character font-medium">{name}</span>
-          </div>
-        </li>
-      ))}
+      {characters.map((name) => {
+        const ci = characterColors[name]
+        return (
+          <li key={name}>
+            <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-so-active transition-colors">
+              {ci !== undefined ? (
+                <span className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${charSwatchClass(ci)}`} />
+              ) : (
+                <span className="w-2.5 h-2.5 rounded-full bg-so-character flex-shrink-0" />
+              )}
+              <span className="text-xs text-so-character font-medium">{name}</span>
+            </div>
+          </li>
+        )
+      })}
     </ul>
   )
 }
@@ -282,7 +284,7 @@ function CharactersPanel(): React.JSX.Element {
 // ── Locations panel ───────────────────────────────────────────────────────────
 
 function LocationsPanel(): React.JSX.Element {
-  const locations = useAutocompleteStore((s) => s.locations)
+  const { locations, locationColors } = useAutocompleteStore()
 
   if (locations.length === 0) {
     return (
@@ -296,15 +298,106 @@ function LocationsPanel(): React.JSX.Element {
 
   return (
     <ul className="py-1">
-      {locations.map((loc) => (
-        <li key={loc}>
-          <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-so-active transition-colors">
-            <span className="w-2 h-2 rounded-full bg-so-scene flex-shrink-0" />
-            <span className="text-xs text-so-scene font-medium">{loc}</span>
-          </div>
-        </li>
-      ))}
+      {locations.map((loc) => {
+        const li = locationColors[loc]
+        return (
+          <li key={loc}>
+            <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-so-active transition-colors">
+              {li !== undefined ? (
+                <span className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${locSwatchClass(li)}`} />
+              ) : (
+                <span className="w-2.5 h-2.5 rounded-sm bg-so-scene flex-shrink-0" />
+              )}
+              <span className="text-xs text-so-scene font-medium">{loc}</span>
+            </div>
+          </li>
+        )
+      })}
     </ul>
+  )
+}
+
+// ── Props panel ───────────────────────────────────────────────────────────────
+
+function PropsPanel(): React.JSX.Element {
+  const { props, propColors, addProp, removeProp } = useAutocompleteStore()
+  const [input, setInput] = useState('')
+
+  const handleAdd = () => {
+    const name = input.trim()
+    if (name) {
+      addProp(name)
+      setInput('')
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleAdd()
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Input */}
+      <div className="px-3 py-2 border-b border-so-border-dim flex-shrink-0">
+        <div className="flex gap-1.5">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="New prop name…"
+            className="flex-1 text-xs bg-so-elevated border border-so-border rounded px-2 py-1 text-so-text placeholder:text-so-text-3 outline-none focus:border-so-accent selectable"
+          />
+          <Tooltip content="Add prop" side="right">
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={!input.trim()}
+              className="px-2 py-1 text-xs bg-so-elevated border border-so-border rounded hover:border-so-accent text-so-text-2 hover:text-so-text transition-colors disabled:opacity-40"
+            >
+              <Plus size={12} />
+            </button>
+          </Tooltip>
+        </div>
+        <p className="text-xxs text-so-text-3 mt-1.5 leading-relaxed">
+          Props are highlighted consistently wherever they appear.
+        </p>
+      </div>
+
+      {/* List */}
+      {props.length === 0 ? (
+        <EmptyState
+          icon={<Tag size={22} />}
+          message="No props yet"
+          sub="Add props to track them with consistent colors."
+        />
+      ) : (
+        <ul className="py-1 flex-1 overflow-y-auto">
+          {props.map((name) => {
+            const ci = propColors[name]
+            return (
+              <li key={name} className="group">
+                <div className="flex items-center gap-2 px-3 py-1.5 hover:bg-so-active transition-colors">
+                  {ci !== undefined ? (
+                    <span className={`w-2.5 h-2.5 rounded-sm flex-shrink-0 ${charSwatchClass(ci % 8)}`} />
+                  ) : (
+                    <span className="w-2.5 h-2.5 rounded-sm bg-so-text-3 flex-shrink-0" />
+                  )}
+                  <span className="flex-1 text-xs text-so-text-2 font-medium">{name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeProp(name)}
+                    className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-so-error transition-opacity"
+                    aria-label={`Remove ${name}`}
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
   )
 }
 

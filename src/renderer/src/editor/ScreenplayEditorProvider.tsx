@@ -1,13 +1,15 @@
 /**
- * ScreenplayEditorProvider — Phase 4
+ * ScreenplayEditorProvider — Phase 5
  *
  * Creates and manages the singleton Tiptap editor instance.
  * Mounted at the App level so the editor state survives view switches.
  *
- * Phase 4 additions:
- *   - Scene list is re-derived from editor JSON on every update (handleUpdate)
- *   - Selection updates track which scene the cursor is in (onSelectionUpdate)
- *   - jumpToSceneById is exported via a context accessor
+ * Phase 5 additions:
+ *   - Entity extraction: character names auto-learned from character blocks;
+ *     locations + full headings auto-learned from sceneHeading blocks.
+ *   - After each extraction pass, dispatches a SEM_REBUILD_META transaction so
+ *     the SemanticHighlightExtension rebuilds its decorations with fresh colors.
+ *   - SemanticHighlightExtension added to the editor extension list.
  *
  * Usage:
  *   - Wrap <AppShell> with <ScreenplayEditorProvider>
@@ -21,9 +23,11 @@ import StarterKit from '@tiptap/starter-kit'
 import { SCREENPLAY_NODES } from './nodes'
 import { ScreenplayKeyboardExtension } from './ScreenplayKeyboardExtension'
 import { ScreenplayAutoFormatExtension } from './ScreenplayAutoFormatExtension'
+import { SemanticHighlightExtension, SEM_REBUILD_META, parseLocationFromHeading } from './SemanticHighlightExtension'
 import { seedContent, SEED_SCENES } from './seedContent'
 import { deriveScenes, activeSceneAtPos } from './sceneUtils'
 import { useDocumentStore } from '../store/documentStore'
+import { useAutocompleteStore } from '../store/autocompleteStore'
 
 // ── Context ───────────────────────────────────────────────────────────────────
 
@@ -39,6 +43,31 @@ interface ScreenplayEditorProviderProps {
   children: React.ReactNode
 }
 
+/** Strip annotation suffixes like (V.O.), (O.S.), (CONT'D) from character names */
+function cleanCharacterName(raw: string): string {
+  return raw.replace(/\s*\([^)]*\)\s*/g, '').trim()
+}
+
+/** Extract and remember all entities found in the document JSON */
+function extractEntities(json: JSONContent): void {
+  const { addCharacter, addLocation, addSceneHeading } = useAutocompleteStore.getState()
+
+  for (const block of json.content ?? []) {
+    if (block.type === 'character') {
+      const text = (block.content ?? []).map((n) => n.text ?? '').join('').trim()
+      const name = cleanCharacterName(text)
+      if (name) addCharacter(name)
+    } else if (block.type === 'sceneHeading') {
+      const heading = (block.content ?? []).map((n) => n.text ?? '').join('').trim()
+      if (heading) {
+        addSceneHeading(heading)
+        const location = parseLocationFromHeading(heading)
+        if (location) addLocation(location)
+      }
+    }
+  }
+}
+
 export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderProps): React.JSX.Element {
   const { setEditorContent, setStats, initScenes, setActiveScene, setCursor } = useDocumentStore()
 
@@ -52,6 +81,13 @@ export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderP
       const currentScenes = useDocumentStore.getState().scenes
       const scenes = deriveScenes(json, currentScenes)
       initScenes(scenes)
+
+      // Auto-learn entities from the updated document
+      extractEntities(json)
+
+      // Signal the semantic highlight plugin to rebuild decorations
+      // (needed because entity color maps may have changed)
+      ed.view.dispatch(ed.state.tr.setMeta(SEM_REBUILD_META, true))
 
       // Live stats
       const text = ed.getText()
@@ -93,6 +129,7 @@ export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderP
       ...SCREENPLAY_NODES,
       ScreenplayKeyboardExtension,
       ScreenplayAutoFormatExtension,
+      SemanticHighlightExtension,
     ],
     content: seedContent,
     autofocus: 'end',
@@ -108,6 +145,9 @@ export function ScreenplayEditorProvider({ children }: ScreenplayEditorProviderP
         synopsis: SEED_SCENES[i]?.synopsis ?? s.synopsis,
       }))
       initScenes(scenes)
+
+      // Seed entity memory from the initial content
+      extractEntities(json)
 
       // Initial stats
       const text = ed.getText()

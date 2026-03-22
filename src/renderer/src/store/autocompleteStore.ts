@@ -9,24 +9,30 @@ interface AutocompletePopup {
 }
 
 /**
- * Autocomplete memory store — Phase 1 placeholder.
- * Full autocomplete logic will be implemented in Phase 5.
+ * Autocomplete memory store — Phase 5.
+ *
+ * Remembers characters, locations, scene headings extracted from editor content.
+ * Also stores manually registered props with their semantic color assignments.
  */
 interface AutocompleteState {
-  // Remembered entities
+  // Remembered entities (auto-populated from editor)
   characters: string[]
   locations: string[]
   sceneHeadings: string[]
   transitions: string[]
 
+  // Manually registered props
+  props: string[]
+
   // Active popup state
   activePopup: AutocompletePopup | null
 
-  // Semantic color mapping (character name → assigned color index)
+  // Semantic color mapping (entity name → assigned color index)
   characterColors: Record<string, number>
   locationColors: Record<string, number>
+  propColors: Record<string, number>
 
-  // Actions
+  // Actions — characters & locations
   addCharacter: (name: string) => void
   addLocation: (name: string) => void
   addSceneHeading: (heading: string) => void
@@ -34,6 +40,11 @@ interface AutocompleteState {
   removeLocation: (name: string) => void
   clearMemory: () => void
 
+  // Actions — props
+  addProp: (name: string) => void
+  removeProp: (name: string) => void
+
+  // Popup actions
   showPopup: (popup: AutocompletePopup) => void
   hidePopup: () => void
   navigatePopup: (direction: 'up' | 'down') => void
@@ -46,9 +57,11 @@ export const useAutocompleteStore = create<AutocompleteState>()(
       locations: [],
       sceneHeadings: [],
       transitions: ['FADE OUT.', 'CUT TO:', 'DISSOLVE TO:', 'SMASH CUT TO:'],
+      props: [],
       activePopup: null,
       characterColors: {},
       locationColors: {},
+      propColors: {},
 
       addCharacter: (name) => {
         const normalized = name.toUpperCase().trim()
@@ -102,6 +115,27 @@ export const useAutocompleteStore = create<AutocompleteState>()(
           locationColors: {},
         }),
 
+      addProp: (name) => {
+        const normalized = name.toUpperCase().trim()
+        if (!normalized) return
+        set((s) => {
+          if (s.props.includes(normalized)) return s
+          const colorIndex = Object.keys(s.propColors).length % 8
+          return {
+            props: [...s.props, normalized].sort(),
+            propColors: { ...s.propColors, [normalized]: colorIndex },
+          }
+        })
+      },
+
+      removeProp: (name) =>
+        set((s) => {
+          const props = s.props.filter((p) => p !== name)
+          const propColors = { ...s.propColors }
+          delete propColors[name]
+          return { props, propColors }
+        }),
+
       showPopup: (popup) => set({ activePopup: popup }),
 
       hidePopup: () => set({ activePopup: null }),
@@ -123,8 +157,10 @@ export const useAutocompleteStore = create<AutocompleteState>()(
         locations: s.locations,
         sceneHeadings: s.sceneHeadings,
         transitions: s.transitions,
+        props: s.props,
         characterColors: s.characterColors,
         locationColors: s.locationColors,
+        propColors: s.propColors,
       }),
     }
   )

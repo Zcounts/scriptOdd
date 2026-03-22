@@ -43,6 +43,7 @@ interface DocumentState {
 
   addNote: (note: Note) => void
   removeNote: (id: string) => void
+  updateNote: (id: string, content: string) => void
 }
 
 export const useDocumentStore = create<DocumentState>()((set, get) => ({
@@ -96,4 +97,11 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
 
   removeNote: (id) =>
     set((s) => ({ notes: s.notes.filter((n) => n.id !== id) })),
+
+  updateNote: (id, content) =>
+    set((s) => ({
+      notes: s.notes.map((n) =>
+        n.id === id ? { ...n, content, updatedAt: new Date().toISOString() } : n
+      ),
+    })),
 }))
