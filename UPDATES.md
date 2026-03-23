@@ -59,14 +59,27 @@ This keeps version bumps and changelogs automatic while making releases delibera
    - Bumps the version in `package.json`.
    - Updates `CHANGELOG.md` with the accumulated changes.
 3. When you are ready to cut a release, **merge the Release PR**.
-4. Release Please pushes a version tag (e.g. `v1.0.1`) and creates a GitHub Release.
-5. The `release.yml` workflow triggers on that tag and:
-   - Builds the Windows NSIS installer + `latest.yml` metadata.
-   - Builds the macOS DMG + ZIP + `latest-mac.yml` metadata.
-   - Uploads all files to the GitHub Release (installers + update metadata).
+4. Release Please pushes a version tag (e.g. `v1.0.1`) and creates the GitHub
+   Release with auto-generated release notes.
+5. The version tag triggers `release.yml`, which:
+   - Builds the Windows NSIS installer + `latest.yml` update metadata
+     (using `--publish never` so electron-builder does not touch GitHub).
+   - Builds the macOS DMG + ZIP + `latest-mac.yml` update metadata
+     (same — no GitHub interaction during the build step).
+   - Runs `gh release upload` to attach **all** built files to the GitHub
+     Release that Release Please already created.
+
+**Why `gh release upload` instead of `--publish always`?**
+
+`electron-builder --publish always` tries to create a new GitHub Release and
+will conflict with (or silently skip) the one Release Please already published.
+Using `--publish never` + `gh release upload` decouples the build from the
+publish step and reliably attaches files to any existing release regardless of
+its draft/published state.
 
 **Result:** The GitHub Release contains `.exe` and `.dmg` installers for manual
-download exactly as before, plus the auto-update metadata files.
+download exactly as before, plus `latest.yml` / `latest-mac.yml` for the
+auto-updater.
 
 ---
 
@@ -167,3 +180,11 @@ environment variables are set.
 | `.release-please-manifest.json` | **New** — bootstraps current version at `1.0.0` |
 | `UPDATES.md` | Updated — documents new CI + Release Please workflow |
 | `README.md` | Updated — added CI & Release Workflow section |
+
+### Release asset & startup-crash fixes (this update)
+
+| File | Change |
+|------|--------|
+| `.github/workflows/release.yml` | Replaced `--publish always` with `--publish never` + `gh release upload` so assets are attached to the Release Please-created release |
+| `src/main/updater.ts` | Fixed `electron-updater` import: changed named import to default import to resolve ESM/CJS interop crash at app startup |
+| `UPDATES.md` | Updated — documents the `gh release upload` approach and the import fix |

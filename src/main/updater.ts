@@ -13,7 +13,11 @@
  *  - Manual "Check for Updates" calls bypass the 24-hour throttle.
  */
 
-import { autoUpdater } from 'electron-updater'
+// electron-updater is a CommonJS module. In an ESM/electron-vite context Rollup
+// cannot statically resolve named exports from CJS; use the default import and
+// destructure at runtime instead.
+import electronUpdater from 'electron-updater'
+const { autoUpdater } = electronUpdater
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
 import { readFileSync, writeFileSync, existsSync } from 'fs'

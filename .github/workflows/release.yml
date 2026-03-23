@@ -1,27 +1,33 @@
 name: Build & Publish Release
 
-# Trigger on semantic-version tags (e.g. v1.2.3).
-# Push a tag to cut a new release:
-#   git tag v1.2.3 && git push origin v1.2.3
+# Triggers when Release Please merges a Release PR and pushes a version tag.
+# Release Please already creates the GitHub Release with release notes.
+# This workflow builds the installers and uploads them to that existing release.
+#
+# Flow:
+#   1. Merge Release PR → Release Please pushes tag + creates GitHub Release.
+#   2. This workflow triggers on the tag.
+#   3. Builds Windows .exe + latest.yml  and macOS .dmg/.zip + latest-mac.yml.
+#   4. Uses `gh release upload` to attach all files to the existing release.
+
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 permissions:
-  contents: write   # needed to create/update GitHub Releases
+  contents: write   # needed to upload assets to the GitHub Release
 
 jobs:
   # ── Windows ──────────────────────────────────────────────────────────────────
   build-windows:
+    name: Build & Upload (Windows)
     runs-on: windows-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -29,23 +35,32 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # --publish always lets electron-builder create the GitHub Release and
-      # upload the installer + latest.yml metadata in one step.
-      - name: Build & publish Windows installer
-        run: npm run dist:win -- --publish always
+      - name: Build Windows installer
+        # --publish never: build only; do not let electron-builder touch GitHub.
+        # Release Please already created the release; we upload manually below.
+        run: npm run dist:win -- --publish never
+
+      - name: Upload Windows assets to GitHub Release
+        # Attaches the NSIS installer and the auto-update metadata to the
+        # release that Release Please already created for this tag.
+        shell: bash
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            dist/*.exe \
+            dist/latest.yml \
+            --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ── macOS ─────────────────────────────────────────────────────────────────────
   build-mac:
+    name: Build & Upload (macOS)
     runs-on: macos-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
@@ -53,16 +68,26 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Builds DMG (manual download) + ZIP (auto-update delta) + latest-mac.yml.
-      # Full macOS auto-update requires code signing & notarization — see UPDATES.md.
-      # Without signing the auto-updater will error on macOS; the DMG download still works.
-      - name: Build & publish macOS installers
-        run: npm run dist:mac -- --publish always
+      - name: Build macOS installers
+        # Builds DMG (manual install) + ZIP (auto-update delta) for x64 & arm64.
+        # Full macOS auto-update requires code signing & notarization — see UPDATES.md.
+        # Without signing the auto-updater will error on macOS; DMG download still works.
+        # --publish never: we upload manually below.
+        run: npm run dist:mac -- --publish never
+        # Uncomment and add secrets when code signing is configured:
+        # env:
+        #   CSC_LINK: ${{ secrets.MAC_CERTS }}
+        #   CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+        #   APPLE_ID: ${{ secrets.APPLE_ID }}
+        #   APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        #   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Upload macOS assets to GitHub Release
+        run: |
+          gh release upload "${{ github.ref_name }}" \
+            dist/*.dmg \
+            dist/*.zip \
+            dist/latest-mac.yml \
+            --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Uncomment and add secrets when code signing is configured:
-          # CSC_LINK: ${{ secrets.MAC_CERTS }}
-          # CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
-          # APPLE_ID: ${{ secrets.APPLE_ID }}
-          # APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
