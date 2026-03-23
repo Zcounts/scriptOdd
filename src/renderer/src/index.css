@@ -577,12 +577,11 @@ body {
   position: relative;
 }
 
-/* Non-first scenes: top margin after page-sep widget simulates page's top margin */
+/* scene-break class kept for backward compat but top margin is now
+   provided by .draft-page-sep margin-bottom instead */
 .screenplay-draft .ProseMirror .sp-scene-heading.scene-break {
-  margin-top: var(--page-padding-top);
-  padding-top: 0;
+  /* top margin handled by .draft-page-sep margin-bottom above */
 }
-/* Remove old dashed line — replaced by .draft-page-sep widget */
 .screenplay-draft .ProseMirror .sp-scene-heading.scene-break::before {
   display: none;
 }
@@ -601,9 +600,12 @@ body {
   margin-left: calc(-1 * var(--page-padding-left));
   /* Height of the visible dark band */
   height: 2.5rem;
-  /* Space above the band = bottom margin of outgoing page */
+  /* Space above band = bottom margin of outgoing page (1in) */
   margin-top: var(--page-padding-bottom);
-  margin-bottom: 0;
+  /* Space below band = top margin of incoming page (1in).
+     Page-number ::after is positioned relative to band bottom, so stays at 0.5in
+     below the band regardless of this margin. */
+  margin-bottom: var(--page-padding-top);
   background: var(--so-shell-bg);
   border-top: 1px solid var(--so-paper-edge);
   border-bottom: 1px solid var(--so-paper-edge);
@@ -801,27 +803,27 @@ body {
 .sem-swatch-loc-4 { background: rgba(var(--sem-loc-4-rgb), 0.85); }
 .sem-swatch-loc-5 { background: rgba(var(--sem-loc-5-rgb), 0.85); }
 
-/* ── Minimal style: colored left border on character cue blocks ──────────── */
-/* Only active when .sem-on is on a container ancestor of the editor         */
+/* ── Minimal style: subtle background tint — no border or padding ────────── */
+/* Background-only ensures zero layout impact: block positions/margins are    */
+/* completely unaffected by whether highlights are on or off.                 */
 
-.sem-on .sem-char-0 { border-left: 3px solid rgba(var(--sem-char-0-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-1 { border-left: 3px solid rgba(var(--sem-char-1-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-2 { border-left: 3px solid rgba(var(--sem-char-2-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-3 { border-left: 3px solid rgba(var(--sem-char-3-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-4 { border-left: 3px solid rgba(var(--sem-char-4-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-5 { border-left: 3px solid rgba(var(--sem-char-5-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-6 { border-left: 3px solid rgba(var(--sem-char-6-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-7 { border-left: 3px solid rgba(var(--sem-char-7-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+.sem-on .sem-char-0 { background: rgba(var(--sem-char-0-rgb), calc(var(--sem-bg-alpha) * 0.5)) !important; border-radius: 2px; }
+.sem-on .sem-char-1 { background: rgba(var(--sem-char-1-rgb), calc(var(--sem-bg-alpha) * 0.5)) !important; border-radius: 2px; }
+.sem-on .sem-char-2 { background: rgba(var(--sem-char-2-rgb), calc(var(--sem-bg-alpha) * 0.5)) !important; border-radius: 2px; }
+.sem-on .sem-char-3 { background: rgba(var(--sem-char-3-rgb), calc(var(--sem-bg-alpha) * 0.5)) !important; border-radius: 2px; }
+.sem-on .sem-char-4 { background: rgba(var(--sem-char-4-rgb), calc(var(--sem-bg-alpha) * 0.5)) !important; border-radius: 2px; }
+.sem-on .sem-char-5 { background: rgba(var(--sem-char-5-rgb), calc(var(--sem-bg-alpha) * 0.5)) !important; border-radius: 2px; }
+.sem-on .sem-char-6 { background: rgba(var(--sem-char-6-rgb), calc(var(--sem-bg-alpha) * 0.5)) !important; border-radius: 2px; }
+.sem-on .sem-char-7 { background: rgba(var(--sem-char-7-rgb), calc(var(--sem-bg-alpha) * 0.5)) !important; border-radius: 2px; }
 
-/* Scene headings: subtle left accent bar in location color */
-.sem-on .sem-loc-0 { border-left: 3px solid rgba(var(--sem-loc-0-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-1 { border-left: 3px solid rgba(var(--sem-loc-1-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-2 { border-left: 3px solid rgba(var(--sem-loc-2-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-3 { border-left: 3px solid rgba(var(--sem-loc-3-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-4 { border-left: 3px solid rgba(var(--sem-loc-4-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-5 { border-left: 3px solid rgba(var(--sem-loc-5-rgb), 0.55) !important; padding-left: 4px !important; }
+.sem-on .sem-loc-0 { background: rgba(var(--sem-loc-0-rgb), calc(var(--sem-bg-alpha) * 0.35)) !important; border-radius: 2px; }
+.sem-on .sem-loc-1 { background: rgba(var(--sem-loc-1-rgb), calc(var(--sem-bg-alpha) * 0.35)) !important; border-radius: 2px; }
+.sem-on .sem-loc-2 { background: rgba(var(--sem-loc-2-rgb), calc(var(--sem-bg-alpha) * 0.35)) !important; border-radius: 2px; }
+.sem-on .sem-loc-3 { background: rgba(var(--sem-loc-3-rgb), calc(var(--sem-bg-alpha) * 0.35)) !important; border-radius: 2px; }
+.sem-on .sem-loc-4 { background: rgba(var(--sem-loc-4-rgb), calc(var(--sem-bg-alpha) * 0.35)) !important; border-radius: 2px; }
+.sem-on .sem-loc-5 { background: rgba(var(--sem-loc-5-rgb), calc(var(--sem-bg-alpha) * 0.35)) !important; border-radius: 2px; }
 
-/* ── Vivid style: adds a background tint in addition to the border ───────── */
+/* ── Vivid style: stronger background tint ───────────────────────────────── */
 .sem-on.sem-style-vivid .sem-char-0 { background: rgba(var(--sem-char-0-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
 .sem-on.sem-style-vivid .sem-char-1 { background: rgba(var(--sem-char-1-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
 .sem-on.sem-style-vivid .sem-char-2 { background: rgba(var(--sem-char-2-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
@@ -907,4 +909,80 @@ body {
   font-family: var(--font-screenplay);
   font-size: 11pt;
   letter-spacing: 0;
+}
+
+/* ── Bug 8: Dark mode — screenplay text on cream paper must be readable ─────
+ *
+ * In dark mode, --so-scene / --so-action / --so-dialogue etc. are light
+ * colours (readable on the dark shell).  But the paper surface is always
+ * cream (#f2eadc), so those same light colours are nearly invisible on it.
+ *
+ * Fix: override every screenplay block colour inside the editor *and* the
+ * page-view to use the on-paper dark-ink palette when html.dark is active.
+ * The sidebar / right-panel still uses the original light variables (they
+ * live on dark panel backgrounds).
+ *
+ * Also boosts --so-text-faint slightly in dark mode so section-header labels
+ * in the notes panel hit WCAG AA contrast on the panel background.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+html.dark {
+  /* Improve right-panel label/header contrast on dark panel bg */
+  --so-text-faint: #a09690;
+}
+
+/* Draft view — screenplay blocks on cream paper */
+html.dark .screenplay-draft .ProseMirror .sp-scene-heading {
+  color: #1e1a14 !important;
+}
+html.dark .screenplay-draft .ProseMirror .sp-action {
+  color: var(--so-text-on-paper) !important;
+}
+html.dark .screenplay-draft .ProseMirror .sp-character {
+  color: #6b3f06 !important;
+}
+html.dark .screenplay-draft .ProseMirror .sp-dialogue {
+  color: var(--so-text-on-paper) !important;
+}
+html.dark .screenplay-draft .ProseMirror .sp-parenthetical {
+  color: var(--so-text-on-paper-muted) !important;
+}
+html.dark .screenplay-draft .ProseMirror .sp-transition {
+  color: #5e3e07 !important;
+}
+html.dark .screenplay-draft .ProseMirror .sp-note {
+  color: #3a5626 !important;
+  border-left-color: #3a5626 !important;
+}
+
+/* Page view — same overrides for read-only rendered pages */
+html.dark .screenplay-page .page-view-scene-heading {
+  color: #1e1a14 !important;
+}
+html.dark .screenplay-page .page-view-action {
+  color: var(--so-text-on-paper) !important;
+}
+html.dark .screenplay-page .page-view-character {
+  color: #6b3f06 !important;
+}
+html.dark .screenplay-page .page-view-dialogue {
+  color: var(--so-text-on-paper) !important;
+}
+html.dark .screenplay-page .page-view-parenthetical {
+  color: var(--so-text-on-paper-muted) !important;
+}
+html.dark .screenplay-page .page-view-transition {
+  color: #5e3e07 !important;
+}
+
+/* ── Comment highlight mark (Bug 4) ─────────────────────────────────────── */
+.comment-highlight {
+  background: rgba(255, 220, 0, 0.30);
+  border-bottom: 1.5px solid rgba(195, 150, 0, 0.55);
+  border-radius: 1px;
+  cursor: pointer;
+}
+html.dark .comment-highlight {
+  background: rgba(255, 218, 0, 0.38);
+  border-bottom-color: rgba(190, 140, 0, 0.7);
 }

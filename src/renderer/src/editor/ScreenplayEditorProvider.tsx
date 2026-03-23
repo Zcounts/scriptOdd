@@ -32,6 +32,7 @@ import { ScreenplayKeyboardExtension } from './ScreenplayKeyboardExtension'
 import { ScreenplayAutoFormatExtension } from './ScreenplayAutoFormatExtension'
 import { SemanticHighlightExtension, SEM_REBUILD_META, parseLocationFromHeading } from './SemanticHighlightExtension'
 import { SceneNumberExtension } from './SceneNumberExtension'
+import { CommentHighlightMark } from './CommentHighlightExtension'
 import { seedContent, SEED_SCENES } from './seedContent'
 import { deriveScenes, activeSceneAtPos } from './sceneUtils'
 import { useDocumentStore } from '../store/documentStore'
@@ -86,7 +87,7 @@ function extractEntities(json: JSONContent): void {
 }
 
 export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEditorProviderProps): React.JSX.Element {
-  const { setEditorContent, setStats, initScenes, setActiveScene, setCursor } = useDocumentStore()
+  const { setEditorContent, setStats, initScenes, setActiveScene, setCursor, setSelectionText } = useDocumentStore()
   const autosaveRef = useRef(onAutosave)
   autosaveRef.current = onAutosave
 
@@ -126,8 +127,13 @@ export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEdi
       const cursorPos = ed.state.selection.$anchor.pos
       setActiveScene(activeSceneAtPos(ed, cursorPos))
       setCursor(cursorPos, ed.state.selection.$anchor.parentOffset)
+
+      // Track the selected text so RightPanel can show a "comment on selection" button
+      const { from, to } = ed.state.selection
+      const selected = from < to ? ed.state.doc.textBetween(from, to, ' ') : null
+      setSelectionText(selected && selected.trim() ? selected.trim() : null)
     },
-    [setActiveScene, setCursor],
+    [setActiveScene, setCursor, setSelectionText],
   )
 
   const editor = useEditor({
@@ -152,6 +158,7 @@ export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEdi
       ScreenplayAutoFormatExtension,
       SemanticHighlightExtension,
       SceneNumberExtension,
+      CommentHighlightMark,
     ],
     content: seedContent,
     autofocus: 'end',

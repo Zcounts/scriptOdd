@@ -97,6 +97,7 @@ function AppInner(): React.JSX.Element {
 
   const [crashData, setCrashData] = useState<string | null>(null)
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
+  const [upToDate, setUpToDate] = useState(false)
 
   // ── Crash recovery check ──────────────────────────────────────────────────
   useEffect(() => {
@@ -116,6 +117,14 @@ function AppInner(): React.JSX.Element {
     if (!window.api?.onUpdateDownloaded) return
     return window.api.onUpdateDownloaded((info) => {
       setUpdateVersion(info.version)
+    })
+  }, [])
+
+  // ── Update: show dialog when already up to date ────────────────────────────
+  useEffect(() => {
+    if (!window.api?.onUpdateNotAvailable) return
+    return window.api.onUpdateNotAvailable(() => {
+      setUpToDate(true)
     })
   }, [])
 
@@ -201,6 +210,46 @@ function AppInner(): React.JSX.Element {
           onInstall={() => window.api?.installUpdate().catch(() => {})}
           onDismiss={() => setUpdateVersion(null)}
         />
+      )}
+      {upToDate && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 9999,
+            background: 'var(--so-elevated)',
+            border: '1px solid var(--so-border)',
+            borderRadius: 10,
+            padding: '28px 36px',
+            textAlign: 'center',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.45)',
+            minWidth: 260,
+          }}
+        >
+          <p style={{ color: 'var(--so-text)', fontSize: 14, marginBottom: 6, fontWeight: 600 }}>
+            scriptOdd is up to date
+          </p>
+          <p style={{ color: 'var(--so-text-muted)', fontSize: 12, marginBottom: 18 }}>
+            You're running the latest version.
+          </p>
+          <button
+            onClick={() => setUpToDate(false)}
+            style={{
+              background: 'var(--so-accent)',
+              color: '#1a150a',
+              border: 'none',
+              borderRadius: 6,
+              padding: '7px 20px',
+              cursor: 'pointer',
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            OK
+          </button>
+        </div>
       )}
     </>
   )

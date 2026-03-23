@@ -20,17 +20,13 @@ import {
   LayoutTemplate,
   PenLine,
   PanelRight,
-  FileText,
   BookOpen,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
   Highlighter,
 } from 'lucide-react'
 import { useAppStore } from '../../store/appStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useLayoutStore } from '../../store/layoutStore'
-import type { Theme, EditorFontSize, EditorLineHeight, PageSize, PageMarginsPreset, LayoutPresetName } from '../../types'
+import type { Theme, PageSize, PageMarginsPreset, LayoutPresetName } from '../../types'
 
 // ── Helper components ─────────────────────────────────────────────────────────
 
@@ -191,10 +187,6 @@ export function SettingsPanel() {
   const {
     settingsPanelOpen,
     closeSettingsPanel,
-    editorFontSize,
-    setEditorFontSize,
-    editorLineHeight,
-    setEditorLineHeight,
     pageSize,
     setPageSize,
     pageMarginsPreset,
@@ -293,33 +285,6 @@ export function SettingsPanel() {
 
         <SectionDivider />
 
-        {/* Typography */}
-        <OptionRow label="Font Size">
-          <div className="flex bg-so-bg rounded overflow-hidden border border-so-border-dim">
-            {(['sm', 'md', 'lg'] as EditorFontSize[]).map((s) => (
-              <SegmentBtn key={s} active={editorFontSize === s} onClick={() => setEditorFontSize(s)} title={s === 'sm' ? 'Small' : s === 'md' ? 'Medium' : 'Large'}>
-                {s === 'sm' ? 'S' : s === 'md' ? 'M' : 'L'}
-              </SegmentBtn>
-            ))}
-          </div>
-        </OptionRow>
-
-        <OptionRow label="Line Spacing">
-          <div className="flex bg-so-bg rounded overflow-hidden border border-so-border-dim">
-            {([
-              { id: 'normal', icon: <AlignLeft size={11} />, title: 'Normal' },
-              { id: 'relaxed', icon: <AlignCenter size={11} />, title: 'Relaxed' },
-              { id: 'spacious', icon: <AlignRight size={11} />, title: 'Spacious' },
-            ] as { id: EditorLineHeight; icon: React.ReactNode; title: string }[]).map(({ id, icon, title }) => (
-              <SegmentBtn key={id} active={editorLineHeight === id} onClick={() => setEditorLineHeight(id)} title={title}>
-                {icon}
-              </SegmentBtn>
-            ))}
-          </div>
-        </OptionRow>
-
-        <SectionDivider />
-
         {/* ── Semantic Highlight ─────────────────────────────────────────────── */}
         <SectionHeader>Highlights</SectionHeader>
 
@@ -331,7 +296,7 @@ export function SettingsPanel() {
           <>
             <OptionRow label="Style">
               <div className="flex bg-so-bg rounded overflow-hidden border border-so-border-dim">
-                <SegmentBtn active={highlightStyle === 'minimal'} onClick={() => setHighlightStyle('minimal')} title="Border only">
+                <SegmentBtn active={highlightStyle === 'minimal'} onClick={() => setHighlightStyle('minimal')} title="Subtle tint">
                   Min
                 </SegmentBtn>
                 <SegmentBtn active={highlightStyle === 'vivid'} onClick={() => setHighlightStyle('vivid')} title="Background tint">

@@ -88,6 +88,8 @@ export function deriveScenes(json: JSONContent, existingScenes: Scene[]): Scene[
       color: existing?.color ?? null,
       order: order++,
       noteIds: existing?.noteIds ?? [],
+      title: existing?.title,
+      status: existing?.status,
     })
   }
 
