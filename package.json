@@ -1,6 +1,6 @@
 {
   "name": "scriptodd",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Local-only desktop screenwriting app for feature films",
   "main": "out/main/index.js",
   "author": {
