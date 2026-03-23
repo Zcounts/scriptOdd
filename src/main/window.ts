@@ -8,7 +8,6 @@ export function createWindow(): BrowserWindow {
     minWidth: 800,
     minHeight: 600,
     frame: false,              // Custom titlebar in renderer
-    titleBarStyle: 'hidden',
     backgroundColor: '#0c0c0f', // Matches dark theme bg before renderer loads
     show: false,               // Show after ready-to-show to avoid flash
     webPreferences: {
