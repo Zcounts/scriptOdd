@@ -33,9 +33,9 @@ Once the app is installed, it manages updates automatically:
 
 ## CI / Build workflow
 
-### Automatic CI builds (every push & pull request)
+### Automatic CI builds (pull requests + pushes to `main`)
 
-Every push to any branch and every pull request automatically triggers the
+Every pull request and every push to `main` automatically triggers the
 `ci.yml` workflow which:
 
 - Runs `typecheck` + `test` on Ubuntu.
@@ -46,6 +46,9 @@ Every push to any branch and every pull request automatically triggers the
 - Uploads installers **and updater metadata** as GitHub Actions artifacts
   (retained 7 days).
 - Does **not** create a public GitHub Release.
+
+`ci.yml` also uses workflow concurrency, so when you push multiple updates to
+the same PR branch, older in-progress CI runs are automatically cancelled.
 
 Download these CI artifacts from the **Actions** tab to test a build before
 it becomes an official release.
@@ -89,6 +92,24 @@ publish step and reliably attaches files to the existing release.
 **Result:** The GitHub Release contains `.exe` and `.dmg` installers for manual
 download exactly as before, plus `.zip`, `latest*.yml`, and blockmap updater
 artifacts for the auto-updater.
+
+---
+
+## Windows installer: why the “cannot be closed” prompt happened
+
+No tray, single-instance background process, or "keep running after close"
+logic exists in the main process. The app closes by closing the BrowserWindow
+and then calling `app.quit()` when all windows are closed.
+
+The Windows NSIS installer, however, was still using the default
+`runAfterFinish: true` behaviour for assisted installers. That means the
+installer launches the app again as soon as installation completes. On the next
+manual install/upgrade attempt, NSIS correctly sees `scriptOdd` still running
+and prompts that it cannot be closed.
+
+Setting `nsis.runAfterFinish` to `false` keeps the manual installer flow intact
+while preventing the installer itself from immediately re-opening the app and
+creating that false-seeming "cannot be closed" loop for the next install.
 
 ---
 
@@ -183,6 +204,7 @@ environment variables are set.
 
 | File | Change |
 |------|--------|
+| `.github/workflows/ci.yml` | **New** — automatic build on pull requests and pushes to `main` (no publish), now also uploads updater metadata, verifies the built Electron bundles, and cancels superseded CI runs |
 | `.github/workflows/ci.yml` | **New** — automatic build on every push/PR (no publish), now also uploads updater metadata and verifies the built Electron bundles |
 | `.github/workflows/release-please.yml` | **New** — opens Release PRs on pushes to `main`, and when a release is created in that same run it builds and uploads release assets directly to the GitHub Release |
 | `release-please-config.json` | **New** — Release Please manifest configuration |
@@ -195,6 +217,8 @@ environment variables are set.
 | File | Change |
 |------|--------|
 | `.github/workflows/release-please.yml` | Builds/uploads Windows and macOS release assets in the same Release Please workflow run, which avoids the `GITHUB_TOKEN` cross-workflow trigger limitation |
+| `.github/workflows/ci.yml` | Uploads `.exe` / `.dmg` / `.zip` plus updater metadata as Actions artifacts for PR/main validation, while avoiding duplicate branch-push CI runs |
+| `package.json` | Sets `nsis.runAfterFinish` to `false` so the Windows installer no longer immediately re-opens the app after installation |
 | `.github/workflows/ci.yml` | Uploads `.exe` / `.dmg` / `.zip` plus updater metadata as Actions artifacts for push/PR validation |
 | `scripts/verify-electron-bundle.mjs` | Asserts the built main bundle no longer contains the forbidden named `electron-updater` import and points at the real preload output |
 | `src/main/window.ts` | Fixes the packaged preload path to `../preload/index.mjs`, matching the actual electron-vite output |

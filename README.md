@@ -78,12 +78,13 @@ The app opens with a sample screenplay. Start typing or press `Ctrl+N` for a bla
 
 ### Automatic CI builds
 
-Every push to any branch and every pull request automatically runs the CI
+Every push to `main` and every pull request automatically runs the CI
 workflow (`ci.yml`), which:
 
 - Type-checks and runs unit tests.
 - Builds a Windows `.exe` installer and macOS `.dmg` / `.zip` installers.
-- Uploads them as **GitHub Actions artifacts** (available for 7 days in the Actions tab).
+- Uploads them, plus updater metadata, as **GitHub Actions artifacts**
+  (available for 7 days in the Actions tab).
 - Does **not** create a public GitHub Release.
 
 ### Official releases (Release Please)
@@ -103,6 +104,16 @@ Official versioned releases are managed by [Release Please](https://github.com/g
 5. Follow-up Windows and macOS jobs in `release-please.yml` build the `.exe`,
    `.dmg`, `.zip`, and updater metadata files, then upload them directly to that
    GitHub Release for manual download and auto-update support.
+
+### Why CI is less noisy now
+
+`ci.yml` no longer runs on every branch push. It now runs on:
+
+- `pull_request` events for normal review/test validation
+- `push` events to `main` for post-merge validation
+
+That removes the duplicate "branch push + pull request" CI pattern while
+preserving CI on pull requests and on merged/mainline pushes.
 
 See [UPDATES.md](UPDATES.md) for the full workflow details.
 

@@ -1,18 +1,22 @@
 name: CI Build
 
-# Runs on every push (to any branch) and every pull request.
+# Runs on every push to main and every pull request.
 # Builds installable artifacts for testing but does NOT publish a GitHub Release.
 # Artifacts are retained for 7 days so you can download and test them.
 
 on:
   push:
     branches:
-      - '**'
+      - main
     tags-ignore:
-      # Skip CI builds when Release Please pushes a version tag — the
-      # dedicated release.yml workflow handles those.
+      # Skip CI builds when Release Please pushes a version tag — release assets
+      # are built in the release-please workflow that created the release.
       - 'v*'
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
