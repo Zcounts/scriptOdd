@@ -125,9 +125,9 @@ export const ScreenplayKeyboardExtension = Extension.create({
           case 'sceneHeading':
             return editor.chain().splitBlock().setNode('action', attrs()).run()
 
-          // Action → default split (stays action)
+          // Action → always produce another action line
           case 'action':
-            return false
+            return editor.chain().splitBlock().setNode('action', attrs()).run()
 
           // Character → dialogue
           case 'character':

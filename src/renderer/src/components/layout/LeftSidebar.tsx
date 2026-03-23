@@ -368,11 +368,12 @@ function NavigatorSceneRow({
           {index + 1}
         </span>
 
-        {/* Text content — clickable to navigate */}
+        {/* Text content — single click navigates, double click edits title */}
         <button
           type="button"
           className="flex-1 min-w-0 text-left"
           onClick={onClick}
+          onDoubleClick={(e) => { e.stopPropagation(); setEditingTitle(true) }}
         >
           {/* Custom title or heading as title */}
           {scene.title ? (
