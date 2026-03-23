@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.0...scriptodd-v1.1.1) (2026-03-23)
+
+
+### Bug Fixes
+
+* attach release assets via gh upload and fix electron-updater ESM import ([55501e7](https://github.com/Zcounts/scriptOdd/commit/55501e7a4a7a1d98ab4ac34cc44f93a5648821cc))
+* attach release assets via gh upload and fix electron-updater ESM… ([31e0c72](https://github.com/Zcounts/scriptOdd/commit/31e0c72eb9f92c2b85f004bd61dbe93ceff0e76a))
+
 ## [1.1.0](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.0.0...scriptodd-v1.1.0) (2026-03-23)
 
 
