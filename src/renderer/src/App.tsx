@@ -97,6 +97,7 @@ function AppInner(): React.JSX.Element {
 
   const [crashData, setCrashData] = useState<string | null>(null)
   const [updateVersion, setUpdateVersion] = useState<string | null>(null)
+  const [upToDate, setUpToDate] = useState(false)
 
   // ── Crash recovery check ──────────────────────────────────────────────────
   useEffect(() => {
@@ -111,11 +112,18 @@ function AppInner(): React.JSX.Element {
       .catch(() => {})
   }, [])
 
-  // ── Update: listen for downloaded update ──────────────────────────────────
+  // ── Update: listen for downloaded update + not-available ──────────────────
   useEffect(() => {
     if (!window.api?.onUpdateDownloaded) return
     return window.api.onUpdateDownloaded((info) => {
       setUpdateVersion(info.version)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!window.api?.onUpdateNotAvailable) return
+    return window.api.onUpdateNotAvailable(() => {
+      setUpToDate(true)
     })
   }, [])
 
@@ -195,6 +203,44 @@ function AppInner(): React.JSX.Element {
       )}
       <AppShell />
       <ToastContainer />
+      {upToDate && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 56,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 9998,
+            background: 'var(--so-panel-bg-solid)',
+            border: '1px solid var(--so-border)',
+            color: 'var(--so-text)',
+            padding: '14px 20px',
+            borderRadius: 8,
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+            fontSize: 13,
+            minWidth: 260,
+          }}
+        >
+          <span style={{ flex: 1 }}>✓ You're up to date!</span>
+          <button
+            onClick={() => setUpToDate(false)}
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--so-border)',
+              borderRadius: 4,
+              padding: '3px 10px',
+              cursor: 'pointer',
+              color: 'var(--so-text-2)',
+              fontSize: 12,
+            }}
+          >
+            OK
+          </button>
+        </div>
+      )}
       {updateVersion && (
         <UpdateDialog
           version={updateVersion}

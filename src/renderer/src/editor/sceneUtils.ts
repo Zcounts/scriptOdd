@@ -88,6 +88,9 @@ export function deriveScenes(json: JSONContent, existingScenes: Scene[]): Scene[
       color: existing?.color ?? null,
       order: order++,
       noteIds: existing?.noteIds ?? [],
+      // Preserve user-set metadata so board reorder never loses them
+      title: existing?.title,
+      status: existing?.status,
     })
   }
 

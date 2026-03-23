@@ -631,6 +631,13 @@ body {
   z-index: 3;
 }
 
+/* Intra-scene page separator — same visual as .draft-page-sep but narrower margin-top
+ * (scene headings already provide the bottom-margin equivalent via margin-top on .scene-break).
+ * For mid-scene breaks the preceding block already has its natural spacing. */
+.intra-page-sep {
+  margin-top: var(--page-padding-bottom);
+}
+
 /* Scene number badge — positioned in the left margin gutter */
 .scene-number-gutter {
   position: absolute;
@@ -743,6 +750,70 @@ body {
   caret-color: var(--so-accent-hi);
 }
 
+/* ── Dark-mode paper text fix (Bug 8) ─────────────────────────────────────
+ *
+ * In Dark mode the shell-level colour tokens (--so-scene, --so-action, etc.)
+ * are light/cream so they're readable on the dark shell background.  But the
+ * screenplay editor puts text ON a cream paper surface, making those light
+ * colours nearly invisible.
+ *
+ * Fix: within .screenplay-draft .ProseMirror, override the text colours to
+ * dark paper-readable values for ALL three themes.  The shell UI (navigator,
+ * notes panel) keeps using the original tokens unchanged.
+ */
+
+/* Dark theme — paper-readable overrides */
+html.dark .screenplay-draft .ProseMirror .sp-scene-heading { color: #24201a; }
+html.dark .screenplay-draft .ProseMirror .sp-action        { color: #2d261f; }
+html.dark .screenplay-draft .ProseMirror .sp-character     { color: #7a4d0a; }
+html.dark .screenplay-draft .ProseMirror .sp-dialogue      { color: #2d261f; }
+html.dark .screenplay-draft .ProseMirror .sp-parenthetical { color: #6b5e4f; }
+html.dark .screenplay-draft .ProseMirror .sp-transition    { color: #7a5100; }
+html.dark .screenplay-draft .ProseMirror .sp-note          { color: #3d5c2b; border-left-color: #3d5c2b; }
+
+/* High-contrast ("Draft") theme — also needs paper-readable overrides.
+ * --so-scene is already #111111 which IS dark enough for paper, but the
+ * shell panel scene text (navigator, right panel) is dark on near-black bg.
+ * Fix: make the shell-level --so-scene light for panel readability, and
+ * override inside the paper editor back to dark. */
+html.high-contrast {
+  --so-scene: #c8c8c8;   /* was #111111 — now readable on dark panel bg */
+  --so-action: #c8c8c8;
+  --so-dialogue: #c8c8c8;
+  --so-paren: #909090;
+  --so-transition: #c89a30;
+  --so-note: #6ea84e;
+}
+
+html.high-contrast .screenplay-draft .ProseMirror .sp-scene-heading { color: #0d0d0d; }
+html.high-contrast .screenplay-draft .ProseMirror .sp-action        { color: #111111; }
+html.high-contrast .screenplay-draft .ProseMirror .sp-character     { color: #5c3a00; }
+html.high-contrast .screenplay-draft .ProseMirror .sp-dialogue      { color: #111111; }
+html.high-contrast .screenplay-draft .ProseMirror .sp-parenthetical { color: #2a2a2a; }
+html.high-contrast .screenplay-draft .ProseMirror .sp-transition    { color: #5c3a00; }
+html.high-contrast .screenplay-draft .ProseMirror .sp-note          { color: #2a4a1a; border-left-color: #2a4a1a; }
+
+/* Right panel note text — ensure it is light in dark/high-contrast modes */
+html.dark .shell-panel .selectable,
+html.dark .shell-panel p,
+html.dark .shell-panel textarea {
+  color: var(--so-text-muted);
+}
+html.high-contrast .shell-panel .selectable,
+html.high-contrast .shell-panel p,
+html.high-contrast .shell-panel textarea {
+  color: var(--so-text-muted);
+}
+
+/* Comment highlight mark (Bug 4) */
+mark.comment-highlight {
+  background-color: rgba(255, 220, 0, 0.28);
+  border-radius: 2px;
+  padding: 0;
+  /* Inherit text colour so highlight doesn't alter readability */
+  color: inherit;
+}
+
 /* ── Semantic Highlighting — Phase 5 ─────────────────────────────────────── */
 /*
  * Eight character colors and six location colors, stored as RGB component
@@ -801,42 +872,47 @@ body {
 .sem-swatch-loc-4 { background: rgba(var(--sem-loc-4-rgb), 0.85); }
 .sem-swatch-loc-5 { background: rgba(var(--sem-loc-5-rgb), 0.85); }
 
-/* ── Minimal style: colored left border on character cue blocks ──────────── */
-/* Only active when .sem-on is on a container ancestor of the editor         */
+/* ── Minimal style: inset box-shadow left indicator (Bug 10 fix) ─────────────
+ *
+ * Previously used border-left + padding-left adjustments which shifted text
+ * position.  Now uses box-shadow: inset so the highlight is purely visual and
+ * does NOT affect the box model, padding, or margins at all.
+ */
 
-.sem-on .sem-char-0 { border-left: 3px solid rgba(var(--sem-char-0-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-1 { border-left: 3px solid rgba(var(--sem-char-1-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-2 { border-left: 3px solid rgba(var(--sem-char-2-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-3 { border-left: 3px solid rgba(var(--sem-char-3-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-4 { border-left: 3px solid rgba(var(--sem-char-4-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-5 { border-left: 3px solid rgba(var(--sem-char-5-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-6 { border-left: 3px solid rgba(var(--sem-char-6-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
-.sem-on .sem-char-7 { border-left: 3px solid rgba(var(--sem-char-7-rgb), 0.75) !important; padding-left: calc(6rem - 3px) !important; }
+/* Character cue blocks — left accent via inset shadow, no layout change */
+.sem-on .sem-char-0 { box-shadow: inset 3px 0 0 rgba(var(--sem-char-0-rgb), 0.75); }
+.sem-on .sem-char-1 { box-shadow: inset 3px 0 0 rgba(var(--sem-char-1-rgb), 0.75); }
+.sem-on .sem-char-2 { box-shadow: inset 3px 0 0 rgba(var(--sem-char-2-rgb), 0.75); }
+.sem-on .sem-char-3 { box-shadow: inset 3px 0 0 rgba(var(--sem-char-3-rgb), 0.75); }
+.sem-on .sem-char-4 { box-shadow: inset 3px 0 0 rgba(var(--sem-char-4-rgb), 0.75); }
+.sem-on .sem-char-5 { box-shadow: inset 3px 0 0 rgba(var(--sem-char-5-rgb), 0.75); }
+.sem-on .sem-char-6 { box-shadow: inset 3px 0 0 rgba(var(--sem-char-6-rgb), 0.75); }
+.sem-on .sem-char-7 { box-shadow: inset 3px 0 0 rgba(var(--sem-char-7-rgb), 0.75); }
 
-/* Scene headings: subtle left accent bar in location color */
-.sem-on .sem-loc-0 { border-left: 3px solid rgba(var(--sem-loc-0-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-1 { border-left: 3px solid rgba(var(--sem-loc-1-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-2 { border-left: 3px solid rgba(var(--sem-loc-2-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-3 { border-left: 3px solid rgba(var(--sem-loc-3-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-4 { border-left: 3px solid rgba(var(--sem-loc-4-rgb), 0.55) !important; padding-left: 4px !important; }
-.sem-on .sem-loc-5 { border-left: 3px solid rgba(var(--sem-loc-5-rgb), 0.55) !important; padding-left: 4px !important; }
+/* Scene headings — left accent via inset shadow, no layout change */
+.sem-on .sem-loc-0 { box-shadow: inset 3px 0 0 rgba(var(--sem-loc-0-rgb), 0.55); }
+.sem-on .sem-loc-1 { box-shadow: inset 3px 0 0 rgba(var(--sem-loc-1-rgb), 0.55); }
+.sem-on .sem-loc-2 { box-shadow: inset 3px 0 0 rgba(var(--sem-loc-2-rgb), 0.55); }
+.sem-on .sem-loc-3 { box-shadow: inset 3px 0 0 rgba(var(--sem-loc-3-rgb), 0.55); }
+.sem-on .sem-loc-4 { box-shadow: inset 3px 0 0 rgba(var(--sem-loc-4-rgb), 0.55); }
+.sem-on .sem-loc-5 { box-shadow: inset 3px 0 0 rgba(var(--sem-loc-5-rgb), 0.55); }
 
-/* ── Vivid style: adds a background tint in addition to the border ───────── */
-.sem-on.sem-style-vivid .sem-char-0 { background: rgba(var(--sem-char-0-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-char-1 { background: rgba(var(--sem-char-1-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-char-2 { background: rgba(var(--sem-char-2-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-char-3 { background: rgba(var(--sem-char-3-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-char-4 { background: rgba(var(--sem-char-4-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-char-5 { background: rgba(var(--sem-char-5-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-char-6 { background: rgba(var(--sem-char-6-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-char-7 { background: rgba(var(--sem-char-7-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; }
+/* ── Vivid style: background tint highlight (no border, no layout impact) ── */
+.sem-on.sem-style-vivid .sem-char-0 { background: rgba(var(--sem-char-0-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-char-1 { background: rgba(var(--sem-char-1-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-char-2 { background: rgba(var(--sem-char-2-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-char-3 { background: rgba(var(--sem-char-3-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-char-4 { background: rgba(var(--sem-char-4-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-char-5 { background: rgba(var(--sem-char-5-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-char-6 { background: rgba(var(--sem-char-6-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-char-7 { background: rgba(var(--sem-char-7-rgb), var(--sem-bg-alpha)) !important; border-radius: 2px; box-shadow: none; }
 
-.sem-on.sem-style-vivid .sem-loc-0 { background: rgba(var(--sem-loc-0-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-loc-1 { background: rgba(var(--sem-loc-1-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-loc-2 { background: rgba(var(--sem-loc-2-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-loc-3 { background: rgba(var(--sem-loc-3-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-loc-4 { background: rgba(var(--sem-loc-4-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
-.sem-on.sem-style-vivid .sem-loc-5 { background: rgba(var(--sem-loc-5-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; }
+.sem-on.sem-style-vivid .sem-loc-0 { background: rgba(var(--sem-loc-0-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-loc-1 { background: rgba(var(--sem-loc-1-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-loc-2 { background: rgba(var(--sem-loc-2-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-loc-3 { background: rgba(var(--sem-loc-3-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-loc-4 { background: rgba(var(--sem-loc-4-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; box-shadow: none; }
+.sem-on.sem-style-vivid .sem-loc-5 { background: rgba(var(--sem-loc-5-rgb), calc(var(--sem-bg-alpha) * 0.6)) !important; border-radius: 2px; box-shadow: none; }
 
 /* ── Page View — screenplay page blocks ───────────────────────────────────── */
 

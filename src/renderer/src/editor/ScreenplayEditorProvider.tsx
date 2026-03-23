@@ -32,6 +32,8 @@ import { ScreenplayKeyboardExtension } from './ScreenplayKeyboardExtension'
 import { ScreenplayAutoFormatExtension } from './ScreenplayAutoFormatExtension'
 import { SemanticHighlightExtension, SEM_REBUILD_META, parseLocationFromHeading } from './SemanticHighlightExtension'
 import { SceneNumberExtension } from './SceneNumberExtension'
+import { CommentHighlightExtension } from './CommentHighlightExtension'
+import { IntraPageBreakExtension } from './IntraPageBreakExtension'
 import { seedContent, SEED_SCENES } from './seedContent'
 import { deriveScenes, activeSceneAtPos } from './sceneUtils'
 import { useDocumentStore } from '../store/documentStore'
@@ -110,8 +112,9 @@ export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEdi
       // Live stats
       const text = ed.getText()
       const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length
+      // Estimate page count: 54 lines/page, ~average 4 lines per block
       const blockCount = json.content?.length ?? 0
-      const pageCount = Math.max(1, Math.ceil(blockCount / 22))
+      const pageCount = Math.max(1, Math.ceil(blockCount / 13))
       setStats({ wordCount, pageCount, sceneCount: scenes.length })
 
       // Mark project as modified (Phase 7)
@@ -152,6 +155,8 @@ export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEdi
       ScreenplayAutoFormatExtension,
       SemanticHighlightExtension,
       SceneNumberExtension,
+      CommentHighlightExtension,
+      IntraPageBreakExtension,
     ],
     content: seedContent,
     autofocus: 'end',
@@ -176,7 +181,7 @@ export function ScreenplayEditorProvider({ children, onAutosave }: ScreenplayEdi
       const wordCount = text.trim() === '' ? 0 : text.trim().split(/\s+/).length
       const blockCount = json.content?.length ?? 0
       setEditorContent(json)
-      setStats({ wordCount, sceneCount: scenes.length, pageCount: Math.max(1, Math.ceil(blockCount / 22)) })
+      setStats({ wordCount, sceneCount: scenes.length, pageCount: Math.max(1, Math.ceil(blockCount / 13)) })
     },
   })
 

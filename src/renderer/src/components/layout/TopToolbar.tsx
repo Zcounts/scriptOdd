@@ -27,7 +27,7 @@ import type { ViewMode } from '../../types'
 
 const VIEW_MODES: { id: ViewMode; label: string; shortLabel: string; icon: React.ReactNode; shortcut: string }[] = [
   { id: 'draft', label: 'Draft View', shortLabel: 'Draft', icon: <LayoutTemplate size={14} strokeWidth={1.7} />, shortcut: 'Ctrl+1' },
-  { id: 'page', label: 'Page View', shortLabel: 'Pages', icon: <BookOpen size={14} strokeWidth={1.7} />, shortcut: 'Ctrl+2' },
+  { id: 'page', label: 'Outline View', shortLabel: 'Outline', icon: <BookOpen size={14} strokeWidth={1.7} />, shortcut: 'Ctrl+2' },
   { id: 'board', label: 'Board View', shortLabel: 'Board', icon: <Grid3X3 size={14} strokeWidth={1.7} />, shortcut: 'Ctrl+3' },
 ]
 

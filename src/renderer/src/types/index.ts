@@ -28,7 +28,7 @@ export const SCENE_STATUS_CONFIG: Record<SceneStatus, SceneStatusConfig> = {
   'complete':       { label: 'Complete',        color: '#22c55e' },
 }
 
-export type RightPanelTab = 'notes' | 'outline' | 'board'
+export type RightPanelTab = 'notes'
 
 // ── Screenplay element types ──────────────────────────────────────────────────
 
@@ -105,6 +105,8 @@ export interface Note {
   id: string
   sceneId: string | null // null = project-level note
   content: string
+  /** Text snippet the note is anchored to (selected in editor) */
+  anchorText?: string
   createdAt: string
   updatedAt: string
 }
