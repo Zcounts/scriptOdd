@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.1...scriptodd-v1.1.2) (2026-03-23)
+
+
+### Bug Fixes
+
+* startup crash and release asset upload ([d1c98af](https://github.com/Zcounts/scriptOdd/commit/d1c98afb6b2e483c7453fed6c6b324c7d4303032))
+* startup crash and release asset upload ([b17813d](https://github.com/Zcounts/scriptOdd/commit/b17813db9b9f81967732bb299def44160a5ac50e))
+
 ## [1.1.1](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.0...scriptodd-v1.1.1) (2026-03-23)
 
 
