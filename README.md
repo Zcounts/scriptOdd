@@ -74,6 +74,38 @@ The app opens with a sample screenplay. Start typing or press `Ctrl+N` for a bla
 
 ---
 
+## CI & Release Workflow
+
+### Automatic CI builds
+
+Every push to any branch and every pull request automatically runs the CI
+workflow (`ci.yml`), which:
+
+- Type-checks and runs unit tests.
+- Builds a Windows `.exe` installer and macOS `.dmg` / `.zip` installers.
+- Uploads them as **GitHub Actions artifacts** (available for 7 days in the Actions tab).
+- Does **not** create a public GitHub Release.
+
+### Official releases (Release Please)
+
+Official versioned releases are managed by [Release Please](https://github.com/googleapis/release-please):
+
+1. Write commits using the [Conventional Commits](https://www.conventionalcommits.org/) format:
+   - `fix: …` → patch bump (e.g. `1.0.0 → 1.0.1`)
+   - `feat: …` → minor bump (e.g. `1.0.0 → 1.1.0`)
+   - `feat!: …` or `BREAKING CHANGE:` footer → major bump
+   - `chore:`, `docs:`, `refactor:`, etc. → no version bump
+2. Push to `main`. Release Please automatically opens or updates a **Release PR**
+   with a version bump and updated changelog.
+3. When you are ready to release, **merge the Release PR**.
+4. Release Please creates a version tag (e.g. `v1.0.1`) and a GitHub Release.
+5. The `release.yml` workflow builds the `.exe` and `.dmg` installers and uploads
+   them to the GitHub Release for manual download — the same experience as before.
+
+See [UPDATES.md](UPDATES.md) for the full workflow details.
+
+---
+
 ## Building from Source
 
 ```bash
