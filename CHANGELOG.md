@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.5](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.4...scriptodd-v1.1.5) (2026-03-23)
+
+
+### Bug Fixes
+
+* close all Electron processes before NSIS installs over existing … ([9ddb8fe](https://github.com/Zcounts/scriptOdd/commit/9ddb8feeea8a1951e1215af61616c8abab349e21))
+* close all Electron processes before NSIS installs over existing version ([948c6be](https://github.com/Zcounts/scriptOdd/commit/948c6beb38011a39d7c83f2b4cfa7c64100698cd))
+* remove invalid closeApplications NSIS property to unblock CI ([015f2f4](https://github.com/Zcounts/scriptOdd/commit/015f2f4305cb203175367078c5df2134a11af9e6))
+* remove invalid closeApplications NSIS property to unblock CI ([7a2d92b](https://github.com/Zcounts/scriptOdd/commit/7a2d92badd8d3120a8ae108301cfd0c0afc38983))
+
 ## [1.1.4](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.3...scriptodd-v1.1.4) (2026-03-23)
 
 
