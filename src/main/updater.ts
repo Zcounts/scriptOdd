@@ -124,11 +124,12 @@ export function checkForUpdates(): void {
 /**
  * Quit the app and apply the downloaded update.
  * isSilent=false shows the NSIS progress dialog on Windows.
- * isForceRunAfter=true re-launches the app after the installer finishes.
+ * isForceRunAfter=false: do not relaunch automatically; the user opens the app
+ * manually after the installer finishes (consistent with runAfterFinish: false).
  */
 export function quitAndInstall(): void {
   if (!app.isPackaged) return
-  autoUpdater.quitAndInstall(false, true)
+  autoUpdater.quitAndInstall(false, false)
 }
 
 // ── Internal ──────────────────────────────────────────────────────────────────
