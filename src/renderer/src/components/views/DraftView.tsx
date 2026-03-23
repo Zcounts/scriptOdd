@@ -50,11 +50,12 @@ export function DraftView({ focusMode = false }: DraftViewProps): React.JSX.Elem
         </div>
       )}
 
-      <div className={`flex-1 overflow-y-auto px-5 py-8 selectable ${semClasses}`}>
+      {/* overflow-x: clip clips the full-width page-sep bands without creating a horizontal scrollbar */}
+      <div className={`flex-1 overflow-y-auto py-10 selectable ${semClasses}`} style={{ overflowX: 'clip' }}>
         <div
           className={[
-            'mx-auto min-h-full screenplay-draft rounded-[28px] border border-so-border bg-[rgba(255,255,255,0.035)] shadow-[0_24px_48px_rgba(0,0,0,0.14)]',
-            focusMode ? 'max-w-3xl px-10 py-10' : 'max-w-4xl px-12 py-10',
+            'mx-auto screenplay-draft',
+            focusMode ? 'max-w-3xl' : '',
           ].join(' ')}
         >
           {editor ? (

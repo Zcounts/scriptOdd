@@ -52,6 +52,18 @@ function buildDecorations(doc: ProseMirrorNode): DecorationSet {
     widget.setAttribute('contenteditable', 'false')
 
     decorations.push(Decoration.widget(pos + 1, widget, { side: -1, key: `scene-num-${num}` }))
+
+    // Page-break separator widget — injected BEFORE each non-first scene heading.
+    // Creates the dark inter-page gap that makes scenes look like discrete sheets.
+    if (!isFirst) {
+      const pageN = num
+      const sep = document.createElement('div')
+      sep.className = 'draft-page-sep'
+      sep.setAttribute('data-page', String(pageN))
+      sep.setAttribute('contenteditable', 'false')
+      sep.setAttribute('aria-hidden', 'true')
+      decorations.push(Decoration.widget(pos, sep, { side: -1, key: `page-sep-${pageN}` }))
+    }
   })
 
   return DecorationSet.create(doc, decorations)

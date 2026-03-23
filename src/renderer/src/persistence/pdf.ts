@@ -39,10 +39,11 @@ const LINES_PER_PAGE   = 55
 const CHARS_PER_DLG    = 35  // Courier New 12pt, 3.5" dialogue width
 const CHARS_PER_WIDE   = 60  // Courier New 12pt, 6" action/heading width
 
-interface MoreBlock  { type: 'more' }
-interface ContdBlock { type: 'contd'; charName: string }
-interface BreakBlock { type: 'pagebreak' }
-type PdfBlock = JSONContent | MoreBlock | ContdBlock | BreakBlock
+interface MoreBlock    { type: 'more' }
+interface ContdBlock   { type: 'contd'; charName: string }
+interface BreakBlock   { type: 'pagebreak' }
+interface PageNumBlock { type: 'pagenum'; num: number }
+type PdfBlock = JSONContent | MoreBlock | ContdBlock | BreakBlock | PageNumBlock
 
 function estimatePdfLines(block: JSONContent): number {
   const chars = extractBlockText(block).length
@@ -81,9 +82,12 @@ function paginateBlocks(content: JSONContent[]): PdfBlock[] {
   let lines = 0
   let lastCharName = ''
   let isFirstPage = true
+  let pageNum = 1
 
   const breakPage = (): void => {
     out.push({ type: 'pagebreak' } as BreakBlock)
+    pageNum++
+    out.push({ type: 'pagenum', num: pageNum } as PageNumBlock)
     lines = 0
     isFirstPage = false
   }
@@ -151,6 +155,10 @@ function paginateBlocks(content: JSONContent[]): PdfBlock[] {
 function renderBlock(block: PdfBlock): string {
   // Virtual markers
   if (block.type === 'pagebreak') return '<div class="page-break"></div>'
+  if (block.type === 'pagenum') {
+    const b = block as PageNumBlock
+    return `<div class="page-number">${b.num}.</div>`
+  }
   if (block.type === 'more')      return `<p class="character">(MORE)</p>`
   if (block.type === 'contd') {
     const b = block as ContdBlock
@@ -235,7 +243,8 @@ const CSS = `
     print-color-adjust: exact;
   }
 
-  /* Page setup */
+  /* Page setup — margins set here so printToPDF with marginType:'none' lets
+     Chromium honour these CSS @page margins for all layout calculations.   */
   @page {
     size: letter;
     margin: 1in 1in 1in 1.5in;
@@ -243,6 +252,19 @@ const CSS = `
 
   @page :first {
     margin: 1in;
+  }
+
+  /* Page number — injected as a block element at the top of each page's
+     content area (immediately after the .page-break div).  Sits flush right
+     at the start of the content area; a bottom margin separates it from the
+     first screenplay element on the new page.                               */
+  .page-number {
+    text-align: right;
+    margin: 0 0 0.5in 0;
+    padding: 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12pt;
+    color: #000000;
   }
 
   /* Title page */
