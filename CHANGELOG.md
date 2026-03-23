@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.4](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.3...scriptodd-v1.1.4) (2026-03-23)
+
+
+### Bug Fixes
+
+* reduce ci noise and stop installer relaunch ([80f0b37](https://github.com/Zcounts/scriptOdd/commit/80f0b378c0de9e04c1f31fbfdb03ffc2d9c0f923))
+
 ## [1.1.3](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.2...scriptodd-v1.1.3) (2026-03-23)
 
 
