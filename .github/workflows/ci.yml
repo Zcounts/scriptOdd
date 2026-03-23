@@ -40,6 +40,12 @@ jobs:
       - name: Run tests
         run: npm run test
 
+      - name: Build app bundles
+        run: npm run build
+
+      - name: Verify packaged main/preload bundle paths
+        run: npm run verify:bundle
+
   # ── Windows installer (no publish) ───────────────────────────────────────────
   build-windows:
     name: Build (Windows)
@@ -60,11 +66,17 @@ jobs:
         # --publish never prevents electron-builder from uploading to GitHub Releases.
         run: npm run dist:win -- --publish never
 
+      - name: Verify packaged main/preload bundle paths
+        run: npm run verify:bundle
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/latest*.yml
+            dist/*.blockmap
           retention-days: 7
 
   # ── macOS installers (no publish) ────────────────────────────────────────────
@@ -88,6 +100,9 @@ jobs:
         # --publish never keeps this as a CI artifact only.
         run: npm run dist:mac -- --publish never
 
+      - name: Verify packaged main/preload bundle paths
+        run: npm run verify:bundle
+
       - name: Upload macOS installers
         uses: actions/upload-artifact@v4
         with:
@@ -95,4 +110,6 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.zip
+            dist/latest-mac*.yml
+            dist/*.blockmap
           retention-days: 7
