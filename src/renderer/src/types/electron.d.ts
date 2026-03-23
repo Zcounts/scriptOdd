@@ -36,6 +36,11 @@ interface WindowState {
   isFullscreen?: boolean
 }
 
+interface UpdateInfo {
+  version: string
+  releaseDate?: string
+}
+
 interface AppAPI {
   // File operations
   openProject: () => Promise<OpenProjectResult>
@@ -60,9 +65,17 @@ interface AppAPI {
   closeWindow: () => void
   isMaximized: () => Promise<boolean>
 
+  // Updater
+  checkForUpdates: () => Promise<void>
+  installUpdate: () => Promise<void>
+
   // Event subscriptions — return a cleanup function
   onMenuAction: (callback: (action: string) => void) => () => void
   onWindowStateChanged: (callback: (state: WindowState) => void) => () => void
+  onUpdateAvailable: (callback: (info: UpdateInfo) => void) => () => void
+  onUpdateNotAvailable: (callback: () => void) => () => void
+  onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => () => void
+  onUpdateError: (callback: (message: string) => void) => () => void
 }
 
 declare global {

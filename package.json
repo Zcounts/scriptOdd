@@ -27,6 +27,7 @@
     "@tiptap/pm": "^3.20.4",
     "@tiptap/react": "^3.20.4",
     "@tiptap/starter-kit": "^3.20.4",
+    "electron-updater": "^6.3.9",
     "lucide-react": "^0.344.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -87,6 +88,13 @@
             "x64",
             "arm64"
           ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ],
       "icon": "build/icon.icns",
@@ -105,6 +113,12 @@
       "icon": "build/icon.png",
       "category": "Office",
       "description": "Local-only desktop screenwriting app for feature films"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "Zcounts",
+      "repo": "scriptOdd",
+      "releaseType": "release"
     }
   }
 }

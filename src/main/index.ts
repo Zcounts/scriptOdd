@@ -3,6 +3,7 @@ import { join } from 'path'
 import { createWindow } from './window'
 import { buildMenu } from './menu'
 import { registerIpcHandlers } from './ipc'
+import { initUpdater } from './updater'
 
 // Ensure the app name is set before any window is created
 app.setName('scriptOdd')
@@ -24,6 +25,7 @@ app.whenReady().then(() => {
   const mainWindow = createWindow()
 
   buildMenu(mainWindow)
+  initUpdater(mainWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

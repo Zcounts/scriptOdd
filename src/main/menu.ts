@@ -146,6 +146,16 @@ export function buildMenu(win: BrowserWindow): void {
           : [{ role: 'close' as const }]),
       ],
     },
+
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'Check for Updates…',
+          click: () => sendAction(win, 'app:check-for-updates'),
+        },
+      ],
+    },
   ]
 
   const menu = Menu.buildFromTemplate(template)
