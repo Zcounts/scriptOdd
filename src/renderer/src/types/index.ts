@@ -107,6 +107,10 @@ export interface Note {
   content: string
   createdAt: string
   updatedAt: string
+  /** Text snippet captured at the time the note was anchored to a selection */
+  selectedText?: string
+  /** Links this note to a CommentHighlightMark in the editor document */
+  highlightId?: string
 }
 
 // ── Layout ────────────────────────────────────────────────────────────────────

@@ -33,9 +33,14 @@ interface DocumentState {
   /** When non-null, the editor provider will setContent() then clear this */
   pendingLoad: JSONContent | null
 
+  // ── Selection text (set by editor on each selection change) ─────────────────
+  /** Non-null when the user has a non-collapsed text selection in the editor */
+  selectionText: string | null
+
   // ── Actions ────────────────────────────────────────────────────────────────
   setEditorContent: (content: JSONContent) => void
   setPendingLoad: (content: JSONContent | null) => void
+  setSelectionText: (text: string | null) => void
   setActiveScene: (id: string | null) => void
   setStats: (stats: { wordCount?: number; pageCount?: number; sceneCount?: number }) => void
   setCursor: (line: number, column: number) => void
@@ -57,6 +62,7 @@ interface DocumentState {
 export const useDocumentStore = create<DocumentState>()((set, get) => ({
   editorContent: null,
   pendingLoad: null,
+  selectionText: null,
   scenes: [],
   activeSceneId: null,
   wordCount: 0,
@@ -69,6 +75,8 @@ export const useDocumentStore = create<DocumentState>()((set, get) => ({
   setEditorContent: (editorContent) => set({ editorContent }),
 
   setPendingLoad: (pendingLoad) => set({ pendingLoad }),
+
+  setSelectionText: (selectionText) => set({ selectionText }),
 
   setActiveScene: (activeSceneId) => set({ activeSceneId }),
 

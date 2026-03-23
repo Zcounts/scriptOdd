@@ -1,19 +1,22 @@
 /**
- * SceneNumberExtension — Prompt 3
+ * SceneNumberExtension — paginated draft view
  *
- * ProseMirror plugin that renders scene numbers in the left margin of Draft
- * View next to the opening slugline of each scene container.
+ * ProseMirror plugin that:
+ *   1. Calculates real page breaks by counting estimated lines per block
+ *      (same algorithm as PageView.tsx — 55 lines per page).
+ *   2. Inserts a .draft-page-sep widget at every page-overflow boundary so
+ *      the draft view shows discrete visual sheets as the user types.
+ *   3. Decorates each scene-start heading with a left-margin scene number
+ *      badge and a `scene-start` CSS class for relative positioning.
  *
- * For each sceneHeading node with attrs.sceneStart === true:
- *   1. A `Decoration.node()` adds class `scene-start` (and `scene-break` for
- *      every scene after the first) so CSS can draw the visual page-break
- *      separator and apply position: relative for the gutter widget.
- *   2. A `Decoration.widget()` injects a <span class="scene-number-gutter">
- *      at the start of the node's content, absolutely positioned into the left
- *      margin via CSS.
- *
- * Rebuilds automatically on every document change (no separate meta signal
- * needed — scene starts are structural, not annotation-level data).
+ * Line estimation (Courier New 12pt, single-spaced):
+ *   Scene heading / Action : ceil(chars / 60) + 1 blank line after
+ *   Character              : 1
+ *   Dialogue               : ceil(chars / 35)
+ *   Parenthetical          : 1
+ *   Transition             : 2
+ *   Note                   : 0  (not printed)
+ *   Other                  : 1
  */
 
 import { Extension } from '@tiptap/core'
@@ -23,51 +26,86 @@ import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
 
 const sceneNumberKey = new PluginKey<DecorationSet>('sceneNumbers')
 
+// ── Line-count constants (must match PageView.tsx) ────────────────────────────
+
+const LINES_PER_PAGE     = 55
+const CHARS_PER_DIALOGUE = 35
+const CHARS_PER_WIDE     = 60
+
+function estimateBlockLines(node: ProseMirrorNode): number {
+  const chars = node.textContent.length
+  switch (node.type.name) {
+    case 'sceneHeading':  return Math.max(1, Math.ceil(chars / CHARS_PER_WIDE)) + 1
+    case 'action':        return Math.max(1, Math.ceil(chars / CHARS_PER_WIDE)) + 1
+    case 'character':     return 1
+    case 'dialogue':      return Math.max(1, Math.ceil(chars / CHARS_PER_DIALOGUE))
+    case 'parenthetical': return 1
+    case 'transition':    return 2
+    case 'note':          return 0
+    default:              return 1
+  }
+}
+
+// ── Decoration builder ────────────────────────────────────────────────────────
+
 function buildDecorations(doc: ProseMirrorNode): DecorationSet {
   const decorations: Decoration[] = []
-  let sceneNum = 0
+  let sceneNum  = 0
+  let lineCount = 0
+  let pageNum   = 1
 
-  doc.descendants((node, pos) => {
-    if (node.type.name !== 'sceneHeading') return
-    if (!node.attrs.sceneStart) return
+  // doc.content.forEach gives (child, offset) where offset == document position
+  // of the child (because the doc root has no opening bracket in the position model).
+  doc.content.forEach((node, offset) => {
+    const pos        = offset
+    const blockLines = estimateBlockLines(node)
 
-    sceneNum++
-    const num = sceneNum
-    const isFirst = num === 1
+    // ── Page break ───────────────────────────────────────────────────────────
+    // If adding this block would overflow the current page, insert a separator
+    // BEFORE it and start a new page counter.
+    if (lineCount + blockLines > LINES_PER_PAGE && lineCount > 0) {
+      pageNum++
+      lineCount = 0
 
-    // Node decoration — drives CSS visual separator (scene-break) and relative
-    // positioning anchor (scene-start) for the gutter widget.
-    decorations.push(
-      Decoration.node(pos, pos + node.nodeSize, {
-        class: isFirst ? 'scene-start' : 'scene-start scene-break',
-      }),
-    )
-
-    // Widget decoration — the scene number badge in the left margin.
-    // Inserted at pos + 1 (inside the node, before any text) so it flows with
-    // the node and is positioned relative to it via CSS.
-    const widget = document.createElement('span')
-    widget.className = 'scene-number-gutter'
-    widget.textContent = String(num)
-    widget.setAttribute('contenteditable', 'false')
-
-    decorations.push(Decoration.widget(pos + 1, widget, { side: -1, key: `scene-num-${num}` }))
-
-    // Page-break separator widget — injected BEFORE each non-first scene heading.
-    // Creates the dark inter-page gap that makes scenes look like discrete sheets.
-    if (!isFirst) {
-      const pageN = num
       const sep = document.createElement('div')
       sep.className = 'draft-page-sep'
-      sep.setAttribute('data-page', String(pageN))
+      sep.setAttribute('data-page', String(pageNum))
       sep.setAttribute('contenteditable', 'false')
       sep.setAttribute('aria-hidden', 'true')
-      decorations.push(Decoration.widget(pos, sep, { side: -1, key: `page-sep-${pageN}` }))
+
+      decorations.push(
+        Decoration.widget(pos, sep, { side: -1, key: `page-sep-${pageNum}-${pos}` }),
+      )
+    }
+
+    lineCount += blockLines
+
+    // ── Scene number + start decoration ──────────────────────────────────────
+    if (node.type.name === 'sceneHeading' && node.attrs.sceneStart) {
+      sceneNum++
+      const num = sceneNum
+
+      // CSS class for relative positioning anchor (gutter widget needs this)
+      decorations.push(
+        Decoration.node(pos, pos + node.nodeSize, { class: 'scene-start' }),
+      )
+
+      // Left-margin scene number badge
+      const badge = document.createElement('span')
+      badge.className = 'scene-number-gutter'
+      badge.textContent = String(num)
+      badge.setAttribute('contenteditable', 'false')
+
+      decorations.push(
+        Decoration.widget(pos + 1, badge, { side: -1, key: `scene-num-${num}` }),
+      )
     }
   })
 
   return DecorationSet.create(doc, decorations)
 }
+
+// ── Extension ─────────────────────────────────────────────────────────────────
 
 export const SceneNumberExtension = Extension.create({
   name: 'sceneNumbers',

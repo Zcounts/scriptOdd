@@ -14,64 +14,68 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react'
-import { MessageSquare, AlignLeft, LayoutGrid, Plus, Trash2 } from 'lucide-react'
-import { useLayoutStore } from '../../store/layoutStore'
+import { MessageSquare, Plus, Trash2, Quote } from 'lucide-react'
 import { useDocumentStore } from '../../store/documentStore'
-import { CompactBoardPanel } from '../views/BoardView'
+import { useScreenplayEditor } from '../../editor/ScreenplayEditorProvider'
 import { IconButton } from '../ui/IconButton'
 import { Tooltip } from '../ui/Tooltip'
-import type { Note, RightPanelTab } from '../../types'
-
-const TABS: { id: RightPanelTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'notes',   label: 'Notes',   icon: <MessageSquare size={13} /> },
-  { id: 'outline', label: 'Outline', icon: <AlignLeft size={13} /> },
-  { id: 'board',   label: 'Board',   icon: <LayoutGrid size={13} /> },
-]
+import type { Note } from '../../types'
+import type { Editor } from '@tiptap/core'
 
 export function RightPanel(): React.JSX.Element {
-  const { rightPanelTab, setRightPanelTab } = useLayoutStore()
   const activeSceneId = useDocumentStore((s) => s.activeSceneId)
+  const selectionText = useDocumentStore((s) => s.selectionText)
   const addNote = useDocumentStore((s) => s.addNote)
+  const editor = useScreenplayEditor()
 
   const handleAddNote = () => {
     const note: Note = {
       id: Math.random().toString(36).slice(2, 9),
-      sceneId: rightPanelTab === 'notes' ? (activeSceneId ?? null) : null,
+      sceneId: activeSceneId ?? null,
       content: '',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }
     addNote(note)
-    // Switch to notes tab if not already there
-    if (rightPanelTab !== 'notes') setRightPanelTab('notes')
+  }
+
+  const handleCommentOnSelection = () => {
+    if (!editor || !selectionText) return
+    const highlightId = Math.random().toString(36).slice(2, 11)
+    // Apply the comment highlight mark to the current selection
+    editor.chain().focus().setMark('commentHighlight', { highlightId }).run()
+    // Create an anchored note
+    const note: Note = {
+      id: Math.random().toString(36).slice(2, 9),
+      sceneId: activeSceneId ?? null,
+      content: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      selectedText: selectionText.slice(0, 120),
+      highlightId,
+    }
+    addNote(note)
   }
 
   return (
     <div className="shell-panel flex flex-col h-full border-l overflow-hidden">
-      {/* Tab bar */}
+      {/* Header */}
       <div className="editor-chrome flex items-center border-b border-so-border-dim flex-shrink-0">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setRightPanelTab(tab.id)}
-            className={[
-              'flex items-center gap-1.5 px-3 py-2',
-              'text-xs font-medium',
-              'border-b-2 transition-colors duration-100',
-              rightPanelTab === tab.id
-                ? 'border-so-accent text-so-text'
-                : 'border-transparent text-so-text-3 hover:text-so-text-2',
-            ].join(' ')}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+        <div className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-so-text border-b-2 border-so-accent">
+          <MessageSquare size={13} />
+          Notes
+        </div>
 
         <div className="flex-1" />
 
-        {/* Add note — always accessible */}
+        {selectionText && editor && (
+          <Tooltip content="Anchor a note to selected text" side="left">
+            <IconButton label="Comment on selection" size="sm" className="mr-1" onClick={handleCommentOnSelection}>
+              <Quote size={13} />
+            </IconButton>
+          </Tooltip>
+        )}
+
         <Tooltip content={activeSceneId ? 'Add scene note' : 'Add project note'} side="left">
           <IconButton label="Add Note" size="sm" className="mr-1" onClick={handleAddNote}>
             <Plus size={13} />
@@ -79,11 +83,9 @@ export function RightPanel(): React.JSX.Element {
         </Tooltip>
       </div>
 
-      {/* Content */}
+      {/* Content — Notes only */}
       <div className="flex-1 overflow-y-auto">
-        {rightPanelTab === 'notes'   && <NotesPanel />}
-        {rightPanelTab === 'outline' && <OutlinePanel />}
-        {rightPanelTab === 'board'   && <CompactBoardPanel />}
+        <NotesPanel editor={editor} />
       </div>
     </div>
   )
@@ -91,7 +93,7 @@ export function RightPanel(): React.JSX.Element {
 
 // ── Notes panel ───────────────────────────────────────────────────────────────
 
-function NotesPanel(): React.JSX.Element {
+function NotesPanel({ editor }: { editor: Editor | null }): React.JSX.Element {
   const notes = useDocumentStore((s) => s.notes)
   const activeSceneId = useDocumentStore((s) => s.activeSceneId)
   const scenes = useDocumentStore((s) => s.scenes)
@@ -155,6 +157,7 @@ function NotesPanel(): React.JSX.Element {
                 <NoteCard
                   key={note.id}
                   note={note}
+                  editor={editor}
                   onSave={(content) => updateNote(note.id, content)}
                   onDelete={() => removeNote(note.id)}
                 />
@@ -190,6 +193,7 @@ function NotesPanel(): React.JSX.Element {
               <NoteCard
                 key={note.id}
                 note={note}
+                editor={editor}
                 onSave={(content) => updateNote(note.id, content)}
                 onDelete={() => removeNote(note.id)}
               />
@@ -205,11 +209,12 @@ function NotesPanel(): React.JSX.Element {
 
 interface NoteCardProps {
   note: Note
+  editor: Editor | null
   onSave: (content: string) => void
   onDelete: () => void
 }
 
-function NoteCard({ note, onSave, onDelete }: NoteCardProps): React.JSX.Element {
+function NoteCard({ note, editor, onSave, onDelete }: NoteCardProps): React.JSX.Element {
   const [editing, setEditing] = useState(note.content === '')
   const [value, setValue] = useState(note.content)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -242,9 +247,39 @@ function NoteCard({ note, onSave, onDelete }: NoteCardProps): React.JSX.Element 
     }
   }
 
+  // Scroll the editor to the anchored highlight mark
+  const handleScrollToHighlight = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!editor || !note.highlightId) return
+    let targetPos: number | null = null
+    editor.state.doc.descendants((node, pos) => {
+      if (targetPos !== null) return false
+      if (node.marks.some((m) => m.type.name === 'commentHighlight' && m.attrs.highlightId === note.highlightId)) {
+        targetPos = pos
+        return false
+      }
+    })
+    if (targetPos !== null) {
+      editor.chain().focus().setTextSelection(targetPos).scrollIntoView().run()
+    }
+  }
+
+  const snippetLabel = note.selectedText
+    ? `"${note.selectedText.length > 60 ? note.selectedText.slice(0, 60) + '…' : note.selectedText}"`
+    : null
+
   if (editing) {
     return (
       <li className="bg-so-elevated border border-so-accent-dim rounded p-2">
+        {snippetLabel && (
+          <button
+            type="button"
+            onClick={handleScrollToHighlight}
+            className="w-full text-left mb-1.5 px-2 py-1 bg-so-bg rounded text-xxs text-so-text-3 italic border-l-2 border-so-accent hover:text-so-text-2 transition-colors"
+          >
+            {snippetLabel}
+          </button>
+        )}
         <textarea
           ref={textareaRef}
           value={value}
@@ -261,9 +296,19 @@ function NoteCard({ note, onSave, onDelete }: NoteCardProps): React.JSX.Element 
   }
 
   return (
-    <li className="group bg-so-elevated border border-so-border rounded p-2 cursor-pointer hover:border-so-border"
+    <li
+      className="group bg-so-elevated border border-so-border rounded p-2 cursor-pointer hover:border-so-border"
       onClick={() => setEditing(true)}
     >
+      {snippetLabel && (
+        <button
+          type="button"
+          onClick={handleScrollToHighlight}
+          className="w-full text-left mb-1.5 px-2 py-1 bg-so-bg rounded text-xxs text-so-text-3 italic border-l-2 border-so-accent hover:text-so-text-2 transition-colors"
+        >
+          {snippetLabel}
+        </button>
+      )}
       <div className="flex items-start gap-1.5">
         <p className="flex-1 text-xs text-so-text-2 leading-relaxed selectable whitespace-pre-wrap">
           {note.content}
@@ -293,45 +338,3 @@ function EmptyNotes(): React.JSX.Element {
   )
 }
 
-// ── Outline panel ─────────────────────────────────────────────────────────────
-
-function OutlinePanel(): React.JSX.Element {
-  const scenes = useDocumentStore((s) => s.scenes)
-  const activeSceneId = useDocumentStore((s) => s.activeSceneId)
-
-  if (scenes.length === 0) {
-    return (
-      <div className="flex flex-col items-center gap-2 py-8 text-center">
-        <AlignLeft size={22} className="text-so-text-3" />
-        <p className="text-xs text-so-text-3">No scenes yet</p>
-        <p className="text-xxs text-so-text-3">
-          Your scene outline will appear here as you write.
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <ul className="p-3 space-y-2">
-      {scenes.map((scene, i) => (
-        <li
-          key={scene.id}
-          className={[
-            'flex gap-2 rounded px-1 py-0.5 transition-colors',
-            activeSceneId === scene.id ? 'bg-so-active' : '',
-          ].join(' ')}
-        >
-          <span className="text-xxs text-so-text-3 mt-0.5 w-5 text-right flex-shrink-0">
-            {i + 1}
-          </span>
-          <div>
-            <p className="text-xs text-so-scene font-medium">{scene.heading}</p>
-            {scene.synopsis && (
-              <p className="text-xxs text-so-text-3 mt-0.5 leading-relaxed">{scene.synopsis}</p>
-            )}
-          </div>
-        </li>
-      ))}
-    </ul>
-  )
-}

@@ -8,16 +8,13 @@ import { AutocompleteMenu } from '../../editor/AutocompleteMenu'
 import { SEM_REBUILD_META } from '../../editor/SemanticHighlightExtension'
 import { useSettingsStore } from '../../store/settingsStore'
 
-const LINE_HEIGHT_CLASS = { normal: 'editor-lh-normal', relaxed: 'editor-lh-relaxed', spacious: 'editor-lh-spacious' } as const
-const FONT_SIZE_CLASS = { sm: 'editor-fontsize-sm', md: 'editor-fontsize-md', lg: 'editor-fontsize-lg' } as const
-
 interface DraftViewProps {
   focusMode?: boolean
 }
 
 export function DraftView({ focusMode = false }: DraftViewProps): React.JSX.Element {
   const editor = useScreenplayEditor()
-  const { semanticHighlight, highlightStyle, highlightIntensity, editorFontSize, editorLineHeight } = useSettingsStore()
+  const { semanticHighlight, highlightStyle, highlightIntensity } = useSettingsStore()
 
   useEffect(() => {
     if (editor) {
@@ -25,12 +22,12 @@ export function DraftView({ focusMode = false }: DraftViewProps): React.JSX.Elem
     }
   }, [editor, semanticHighlight, highlightStyle, highlightIntensity])
 
+  // Font size (12pt) and line height (1.0 single-spaced) are hardcoded in CSS
+  // per screenplay spec — not user-configurable.
   const semClasses = [
     semanticHighlight ? 'sem-on' : 'sem-off',
     `sem-style-${highlightStyle}`,
     `sem-intensity-${highlightIntensity}`,
-    FONT_SIZE_CLASS[editorFontSize],
-    LINE_HEIGHT_CLASS[editorLineHeight],
   ].join(' ')
 
   return (

@@ -76,6 +76,9 @@ function WindowButton({ label, onClick, hoverClass, children }: WindowButtonProp
       type="button"
       aria-label={label}
       onClick={onClick}
+      // Stop mousedown propagation so the -webkit-app-region:drag parent
+      // does not capture this click as a window-drag gesture.
+      onMouseDown={(e) => e.stopPropagation()}
       className={[
         'flex items-center justify-center rounded-full',
         'w-8 h-8',
