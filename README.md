@@ -104,6 +104,19 @@ Official versioned releases are managed by [Release Please](https://github.com/g
 
 See [UPDATES.md](UPDATES.md) for the full workflow details.
 
+### Required GitHub repository settings
+
+Release Please needs write access to create PRs and push tags. Before the
+Release Please workflow will succeed, a repo admin must enable two settings:
+
+1. **Settings → Actions → General → Workflow permissions**
+   Set to **"Read and write permissions"**.
+2. **Settings → Actions → General**
+   Check **"Allow GitHub Actions to create and approve pull requests"**.
+
+Without these, the `release-please.yml` run will end with
+`User or resource not accessible by integration (403)`.
+
 ---
 
 ## Building from Source
