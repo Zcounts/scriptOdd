@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.3](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.2...scriptodd-v1.1.3) (2026-03-23)
+
+
+### Bug Fixes
+
+* ship release assets from release please ([c457e09](https://github.com/Zcounts/scriptOdd/commit/c457e094731442625b50aabed6e0e3cc2e5e5961))
+* ship release assets from release-please and verify built bundles ([01da3ac](https://github.com/Zcounts/scriptOdd/commit/01da3ac3ff3b392cdd4433a873f3c654bddc1be9))
+
 ## [1.1.2](https://github.com/Zcounts/scriptOdd/compare/scriptodd-v1.1.1...scriptodd-v1.1.2) (2026-03-23)
 
 

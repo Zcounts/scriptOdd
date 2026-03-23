@@ -205,6 +205,7 @@ environment variables are set.
 | File | Change |
 |------|--------|
 | `.github/workflows/ci.yml` | **New** — automatic build on pull requests and pushes to `main` (no publish), now also uploads updater metadata, verifies the built Electron bundles, and cancels superseded CI runs |
+| `.github/workflows/ci.yml` | **New** — automatic build on every push/PR (no publish), now also uploads updater metadata and verifies the built Electron bundles |
 | `.github/workflows/release-please.yml` | **New** — opens Release PRs on pushes to `main`, and when a release is created in that same run it builds and uploads release assets directly to the GitHub Release |
 | `release-please-config.json` | **New** — Release Please manifest configuration |
 | `.release-please-manifest.json` | **New** — bootstraps current version at `1.0.0` |
@@ -218,6 +219,7 @@ environment variables are set.
 | `.github/workflows/release-please.yml` | Builds/uploads Windows and macOS release assets in the same Release Please workflow run, which avoids the `GITHUB_TOKEN` cross-workflow trigger limitation |
 | `.github/workflows/ci.yml` | Uploads `.exe` / `.dmg` / `.zip` plus updater metadata as Actions artifacts for PR/main validation, while avoiding duplicate branch-push CI runs |
 | `package.json` | Sets `nsis.runAfterFinish` to `false` so the Windows installer no longer immediately re-opens the app after installation |
+| `.github/workflows/ci.yml` | Uploads `.exe` / `.dmg` / `.zip` plus updater metadata as Actions artifacts for push/PR validation |
 | `scripts/verify-electron-bundle.mjs` | Asserts the built main bundle no longer contains the forbidden named `electron-updater` import and points at the real preload output |
 | `src/main/window.ts` | Fixes the packaged preload path to `../preload/index.mjs`, matching the actual electron-vite output |
 | `src/renderer/src/App.tsx` | Removes the duplicate launch-time manual update check so launch stays silent and post-launch checks remain throttled by the main process |
