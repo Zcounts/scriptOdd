@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { LayoutGrid, Film, StickyNote, Pencil, Check, X } from 'lucide-react'
 import { useDocumentStore } from '../../store/documentStore'
 import { useLayoutStore } from '../../store/layoutStore'
@@ -15,9 +16,10 @@ interface StatusPickerProps {
   status?: SceneStatus
   onSelect: (s: SceneStatus | null) => void
   onClose: () => void
+  anchorRect: DOMRect
 }
 
-function StatusPickerDropdown({ status, onSelect, onClose }: StatusPickerProps): React.JSX.Element {
+function StatusPickerDropdown({ status, onSelect, onClose, anchorRect }: StatusPickerProps): React.JSX.Element {
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -28,10 +30,11 @@ function StatusPickerDropdown({ status, onSelect, onClose }: StatusPickerProps):
     return () => document.removeEventListener('mousedown', onClickOutside)
   }, [onClose])
 
-  return (
+  return createPortal(
     <div
       ref={ref}
-      className="absolute top-full left-0 mt-1 z-50 bg-so-elevated border border-so-border rounded-lg shadow-lg py-1 min-w-[148px]"
+      className="fixed z-[9999] bg-so-elevated border border-so-border rounded-lg shadow-lg py-1 min-w-[148px]"
+      style={{ top: anchorRect.bottom + 4, left: anchorRect.left }}
       onClick={(e) => e.stopPropagation()}
     >
       {STATUS_ORDER.map((s) => {
@@ -59,7 +62,8 @@ function StatusPickerDropdown({ status, onSelect, onClose }: StatusPickerProps):
           <span>Clear status</span>
         </button>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -247,7 +251,9 @@ function SceneCard({ scene, number, isDragging = false, isActive = false, onClic
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(scene.title ?? '')
   const [statusPickerOpen, setStatusPickerOpen] = useState(false)
+  const [statusAnchorRect, setStatusAnchorRect] = useState<DOMRect | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const statusDotRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     if (editingTitle) {
@@ -300,8 +306,9 @@ function SceneCard({ scene, number, isDragging = false, isActive = false, onClic
           <span className="text-xxs text-so-text-3 font-mono tabular-nums">{String(number).padStart(2, '0')}</span>
 
           {/* Status dot / picker */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()}>
             <button
+              ref={statusDotRef}
               type="button"
               className="w-2.5 h-2.5 rounded-full border transition-opacity hover:opacity-100 focus:outline-none"
               style={
@@ -310,13 +317,18 @@ function SceneCard({ scene, number, isDragging = false, isActive = false, onClic
                   : { backgroundColor: 'transparent', borderColor: 'currentColor', opacity: 0.25 }
               }
               title={scene.status ? SCENE_STATUS_CONFIG[scene.status].label : 'Set status'}
-              onClick={() => setStatusPickerOpen((v) => !v)}
+              onClick={() => {
+                const rect = statusDotRef.current?.getBoundingClientRect()
+                if (rect) setStatusAnchorRect(rect)
+                setStatusPickerOpen((v) => !v)
+              }}
             />
-            {statusPickerOpen && (
+            {statusPickerOpen && statusAnchorRect && (
               <StatusPickerDropdown
                 status={scene.status}
                 onSelect={(s) => onUpdateScene({ status: s })}
                 onClose={() => setStatusPickerOpen(false)}
+                anchorRect={statusAnchorRect}
               />
             )}
           </div>
@@ -409,6 +421,8 @@ function CompactCard({
   onUpdateScene: (patch: { title?: string; status?: SceneStatus | null }) => void
 }) {
   const [statusPickerOpen, setStatusPickerOpen] = useState(false)
+  const [statusAnchorRect, setStatusAnchorRect] = useState<DOMRect | null>(null)
+  const statusDotRef = useRef<HTMLButtonElement>(null)
   const statusColor = scene.status ? SCENE_STATUS_CONFIG[scene.status].color : undefined
 
   return (
@@ -429,8 +443,9 @@ function CompactCard({
             {String(number).padStart(2, '0')}
           </span>
           {/* Status dot */}
-          <div className="relative" onClick={(e) => e.stopPropagation()}>
+          <div onClick={(e) => e.stopPropagation()}>
             <button
+              ref={statusDotRef}
               type="button"
               className="w-2 h-2 rounded-full border transition-opacity hover:opacity-100"
               style={
@@ -439,13 +454,18 @@ function CompactCard({
                   : { backgroundColor: 'transparent', borderColor: 'currentColor', opacity: 0.25 }
               }
               title={scene.status ? SCENE_STATUS_CONFIG[scene.status].label : 'Set status'}
-              onClick={() => setStatusPickerOpen((v) => !v)}
+              onClick={() => {
+                const rect = statusDotRef.current?.getBoundingClientRect()
+                if (rect) setStatusAnchorRect(rect)
+                setStatusPickerOpen((v) => !v)
+              }}
             />
-            {statusPickerOpen && (
+            {statusPickerOpen && statusAnchorRect && (
               <StatusPickerDropdown
                 status={scene.status}
                 onSelect={(s) => onUpdateScene({ status: s })}
                 onClose={() => setStatusPickerOpen(false)}
+                anchorRect={statusAnchorRect}
               />
             )}
           </div>
