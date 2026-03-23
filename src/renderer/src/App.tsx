@@ -16,6 +16,7 @@ import { useLayoutStore } from './store/layoutStore'
 import { ScreenplayEditorProvider } from './editor/ScreenplayEditorProvider'
 import { useProjectOperations } from './hooks/useProjectOperations'
 import { ToastContainer } from './components/ui/ToastContainer'
+import { UpdateDialog } from './components/ui/UpdateDialog'
 
 // ── Crash recovery banner ─────────────────────────────────────────────────────
 
@@ -95,6 +96,7 @@ function AppInner(): React.JSX.Element {
   } = useProjectOperations()
 
   const [crashData, setCrashData] = useState<string | null>(null)
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null)
 
   // ── Crash recovery check ──────────────────────────────────────────────────
   useEffect(() => {
@@ -107,6 +109,19 @@ function AppInner(): React.JSX.Element {
         }
       })
       .catch(() => {})
+  }, [])
+
+  // ── Update: silent launch check ───────────────────────────────────────────
+  useEffect(() => {
+    window.api?.checkForUpdates().catch(() => {})
+  }, [])
+
+  // ── Update: listen for downloaded update ──────────────────────────────────
+  useEffect(() => {
+    if (!window.api?.onUpdateDownloaded) return
+    return window.api.onUpdateDownloaded((info) => {
+      setUpdateVersion(info.version)
+    })
   }, [])
 
   const handleRestore = () => {
@@ -167,6 +182,9 @@ function AppInner(): React.JSX.Element {
         case 'app:toggle-theme':
           useAppStore.getState().toggleTheme()
           break
+        case 'app:check-for-updates':
+          window.api?.checkForUpdates().catch(() => {})
+          break
         default:
           console.log('[menu] unhandled action:', action)
       }
@@ -182,6 +200,13 @@ function AppInner(): React.JSX.Element {
       )}
       <AppShell />
       <ToastContainer />
+      {updateVersion && (
+        <UpdateDialog
+          version={updateVersion}
+          onInstall={() => window.api?.installUpdate().catch(() => {})}
+          onDismiss={() => setUpdateVersion(null)}
+        />
+      )}
     </>
   )
 }

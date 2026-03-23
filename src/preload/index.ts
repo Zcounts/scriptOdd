@@ -44,6 +44,10 @@ const api = {
   closeWindow: () => ipcRenderer.send('window:close'),
   isMaximized: () => ipcRenderer.invoke('window:is-maximized') as Promise<boolean>,
 
+  // ── Updater ───────────────────────────────────────────────────────────────
+  checkForUpdates: () => ipcRenderer.invoke('update:check') as Promise<void>,
+  installUpdate: () => ipcRenderer.invoke('update:install') as Promise<void>,
+
   // ── Event subscriptions (main → renderer) ─────────────────────────────────
   onMenuAction: (callback: (action: string) => void) => {
     const handler = (_: IpcRendererEvent, action: string) => callback(action)
@@ -55,6 +59,30 @@ const api = {
     const handler = (_: IpcRendererEvent, state: WindowState) => callback(state)
     ipcRenderer.on('window:state-changed', handler)
     return () => ipcRenderer.removeListener('window:state-changed', handler)
+  },
+
+  onUpdateAvailable: (callback: (info: UpdateInfo) => void) => {
+    const handler = (_: IpcRendererEvent, info: UpdateInfo) => callback(info)
+    ipcRenderer.on('update:available', handler)
+    return () => ipcRenderer.removeListener('update:available', handler)
+  },
+
+  onUpdateNotAvailable: (callback: () => void) => {
+    const handler = () => callback()
+    ipcRenderer.on('update:not-available', handler)
+    return () => ipcRenderer.removeListener('update:not-available', handler)
+  },
+
+  onUpdateDownloaded: (callback: (info: UpdateInfo) => void) => {
+    const handler = (_: IpcRendererEvent, info: UpdateInfo) => callback(info)
+    ipcRenderer.on('update:downloaded', handler)
+    return () => ipcRenderer.removeListener('update:downloaded', handler)
+  },
+
+  onUpdateError: (callback: (message: string) => void) => {
+    const handler = (_: IpcRendererEvent, message: string) => callback(message)
+    ipcRenderer.on('update:error', handler)
+    return () => ipcRenderer.removeListener('update:error', handler)
   },
 }
 
@@ -91,4 +119,9 @@ interface ExportResult {
 interface WindowState {
   isMaximized?: boolean
   isFullscreen?: boolean
+}
+
+interface UpdateInfo {
+  version: string
+  releaseDate?: string
 }
