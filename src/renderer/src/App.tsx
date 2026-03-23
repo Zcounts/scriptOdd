@@ -111,11 +111,6 @@ function AppInner(): React.JSX.Element {
       .catch(() => {})
   }, [])
 
-  // ── Update: silent launch check ───────────────────────────────────────────
-  useEffect(() => {
-    window.api?.checkForUpdates().catch(() => {})
-  }, [])
-
   // ── Update: listen for downloaded update ──────────────────────────────────
   useEffect(() => {
     if (!window.api?.onUpdateDownloaded) return

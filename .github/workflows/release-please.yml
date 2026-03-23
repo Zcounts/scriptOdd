@@ -3,11 +3,13 @@ name: Release Please
 # Runs on every push to main.
 # Creates and maintains a "Release PR" that accumulates conventional commits,
 # bumps the version in package.json, and updates CHANGELOG.md.
-# When you merge the Release PR, Release Please:
-#   1. Pushes a version tag (e.g. v1.0.1).
-#   2. Creates a GitHub Release with auto-generated release notes.
-# The version tag then triggers the separate release.yml workflow which builds
-# and uploads the .exe and .dmg installers to that GitHub Release.
+# When you merge the Release PR, this same workflow:
+#   1. Creates the version tag and GitHub Release via Release Please.
+#   2. Builds the Windows/macOS installers in follow-up jobs.
+#   3. Uploads those installers + updater metadata to the release directly.
+#
+# Important: these upload jobs live in the same workflow run because resources
+# created with GITHUB_TOKEN do not trigger new workflow runs.
 
 on:
   push:
@@ -21,9 +23,96 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  build-windows-release:
+    name: Build & Upload Release (Windows)
+    runs-on: windows-latest
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        run: npm run dist:win -- --publish never
+
+      - name: Verify packaged main/preload bundle paths
+        run: npm run verify:bundle
+
+      - name: Upload Windows assets to GitHub Release
+        shell: bash
+        run: |
+          shopt -s nullglob
+          assets=(dist/*.exe dist/latest*.yml dist/*.blockmap)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No Windows release assets were built." >&2
+            exit 1
+          fi
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" "${assets[@]}" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-mac-release:
+    name: Build & Upload Release (macOS)
+    runs-on: macos-latest
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS installers
+        run: npm run dist:mac -- --publish never
+        # Uncomment and add secrets when code signing is configured:
+        # env:
+        #   CSC_LINK: ${{ secrets.MAC_CERTS }}
+        #   CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTS_PASSWORD }}
+        #   APPLE_ID: ${{ secrets.APPLE_ID }}
+        #   APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        #   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Verify packaged main/preload bundle paths
+        run: npm run verify:bundle
+
+      - name: Upload macOS assets to GitHub Release
+        shell: bash
+        run: |
+          shopt -s nullglob
+          assets=(dist/*.dmg dist/*.zip dist/latest-mac*.yml dist/*.blockmap)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "No macOS release assets were built." >&2
+            exit 1
+          fi
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" "${assets[@]}" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

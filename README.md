@@ -98,9 +98,11 @@ Official versioned releases are managed by [Release Please](https://github.com/g
 2. Push to `main`. Release Please automatically opens or updates a **Release PR**
    with a version bump and updated changelog.
 3. When you are ready to release, **merge the Release PR**.
-4. Release Please creates a version tag (e.g. `v1.0.1`) and a GitHub Release.
-5. The `release.yml` workflow builds the `.exe` and `.dmg` installers and uploads
-   them to the GitHub Release for manual download — the same experience as before.
+4. In that same `release-please.yml` run, Release Please creates a version tag
+   (e.g. `v1.0.1`) and a GitHub Release.
+5. Follow-up Windows and macOS jobs in `release-please.yml` build the `.exe`,
+   `.dmg`, `.zip`, and updater metadata files, then upload them directly to that
+   GitHub Release for manual download and auto-update support.
 
 See [UPDATES.md](UPDATES.md) for the full workflow details.
 
