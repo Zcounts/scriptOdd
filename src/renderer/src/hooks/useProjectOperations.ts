@@ -322,21 +322,31 @@ export function useProjectOperations() {
   // ── Export PDF ────────────────────────────────────────────────────────────
 
   const exportPDF = useCallback(async () => {
-    if (!window.api) return
+    if (!window.api) {
+      toast('PDF export requires the desktop app.', 'error')
+      return
+    }
 
     const { editorContent } = useDocumentStore.getState()
     const meta = useProjectStore.getState().project ?? undefined
 
-    if (!editorContent) return
+    if (!editorContent) {
+      toast('Nothing to export — start writing first.', 'error')
+      return
+    }
 
     toast('Exporting PDF…', 'info')
-    const html = buildPdfHtml(editorContent, meta)
-    const result = await window.api.exportPDF({ html, title: meta?.title })
+    try {
+      const html = buildPdfHtml(editorContent, meta)
+      const result = await window.api.exportPDF({ html, title: meta?.title })
 
-    if (result.success) {
-      toast('PDF exported successfully.', 'success')
-    } else if (!result.cancelled) {
-      toast(`PDF export failed: ${result.error ?? 'unknown error'}`, 'error')
+      if (result.success) {
+        toast('PDF exported successfully.', 'success')
+      } else if (!result.cancelled) {
+        toast(`PDF export failed: ${result.error ?? 'unknown error'}`, 'error')
+      }
+    } catch (err) {
+      toast(`PDF export failed: ${String(err)}`, 'error')
     }
   }, [toast])
 

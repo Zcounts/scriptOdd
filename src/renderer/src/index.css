@@ -494,6 +494,61 @@ body {
     radial-gradient(circle at top, rgba(var(--so-paper-rgb), 0.08), transparent 26%),
     linear-gradient(180deg, rgba(255,255,255,0.02), transparent 30%);
 }
+/* ── DraftView: page-based layout ─────────────────────────────────────────── */
+/*
+ * The .screenplay-draft wrapper is now transparent (page appearance comes from
+ * the ProseMirror div).  Each scene looks like a discrete sheet: the
+ * .draft-page-sep widget provides the dark inter-sheet gap, and margin-top on
+ * the scene-break heading provides the new sheet's top margin.
+ */
+
+.screenplay-draft {
+  /* Constrain to paper width; centred by mx-auto in JSX */
+  width: var(--page-width);
+  max-width: 100%;
+  /* Remove old rounded-box look — pages have their own paper styling */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 0;
+}
+
+/* The ProseMirror div IS the paper surface */
+.screenplay-draft .ProseMirror {
+  background: linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.06)), var(--so-paper);
+  color: var(--so-text-on-paper);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  line-height: 1.0;
+  /* Screenplay margins: top 1in, bottom 1in, left 1.5in, right 1in */
+  padding: var(--page-padding-top) var(--page-padding-right) var(--page-padding-bottom) var(--page-padding-left);
+  /* Ensure at least one full page height even when empty */
+  min-height: var(--page-min-height);
+  border: 1px solid var(--so-paper-edge);
+  border-radius: 2px;
+  box-shadow:
+    0 24px 48px var(--so-paper-shadow),
+    0 2px 0 rgba(255, 255, 255, 0.45) inset,
+    0 -1px 0 rgba(138, 118, 89, 0.1) inset;
+  position: relative;
+}
+
+/* Paper texture overlay (matches .screenplay-page) */
+.screenplay-draft .ProseMirror::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.26), transparent 18%),
+    radial-gradient(circle at 15% 12%, rgba(255,255,255,0.22), transparent 24%),
+    repeating-linear-gradient(0deg, rgba(110, 94, 70, 0.016) 0, rgba(110, 94, 70, 0.016) 1px, transparent 1px, transparent 6px);
+  mix-blend-mode: multiply;
+  border-radius: 2px;
+  z-index: 0;
+}
+
 /* Tiptap cursor placeholder */
 .screenplay-draft .ProseMirror p.is-editor-empty:first-child::before {
   content: attr(data-placeholder);
@@ -522,20 +577,58 @@ body {
   position: relative;
 }
 
-/* Non-first scenes get a visual page-break separator above them. */
+/* Non-first scenes: top margin after page-sep widget simulates page's top margin */
 .screenplay-draft .ProseMirror .sp-scene-heading.scene-break {
-  margin-top: 3rem;
-  padding-top: 1.25rem;
+  margin-top: var(--page-padding-top);
+  padding-top: 0;
 }
+/* Remove old dashed line — replaced by .draft-page-sep widget */
 .screenplay-draft .ProseMirror .sp-scene-heading.scene-break::before {
-  content: '';
+  display: none;
+}
+
+/* ── Draft view page separator widget ─────────────────────────────────────── */
+/*
+ * Injected by SceneNumberExtension as a Decoration.widget before every
+ * non-first scene-start heading.  Creates the visual "sheet gap" between
+ * scenes: bottom margin of the outgoing page → dark shell gap → top margin
+ * of the incoming page starts via the heading's margin-top above.
+ */
+.draft-page-sep {
   display: block;
+  /* Extend full paper width, past the content-area padding */
+  width: calc(100% + var(--page-padding-left) + var(--page-padding-right));
+  margin-left: calc(-1 * var(--page-padding-left));
+  /* Height of the visible dark band */
+  height: 2.5rem;
+  /* Space above the band = bottom margin of outgoing page */
+  margin-top: var(--page-padding-bottom);
+  margin-bottom: 0;
+  background: var(--so-shell-bg);
+  border-top: 1px solid var(--so-paper-edge);
+  border-bottom: 1px solid var(--so-paper-edge);
+  box-shadow:
+    inset 0 6px 14px rgba(0, 0, 0, 0.22),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+  user-select: none;
+  position: relative;
+  z-index: 2;
+}
+
+/* Page number — appears 0.5in below the dark band (= 0.5in from top of new page) */
+.draft-page-sep::after {
+  content: attr(data-page) '.';
   position: absolute;
-  top: 0;
-  left: -3rem;
-  right: -3rem;
-  border-top: 1px dashed var(--so-border);
-  opacity: 0.5;
+  /* right edge aligns with paper right margin (1in from right edge of paper) */
+  right: var(--page-padding-right);
+  /* 0.5in below the bottom of the dark band = 0.5in from "top of page" */
+  bottom: calc(-0.5in);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  color: var(--so-text-on-paper);
+  pointer-events: none;
+  z-index: 3;
 }
 
 /* Scene number badge — positioned in the left margin gutter */
@@ -572,7 +665,14 @@ body {
   letter-spacing: 0.03em;
   margin-top: 1em;
   margin-bottom: 0.1em;
-  padding-left: 6rem; /* ~3.5in equivalent in screen space */
+  padding-left: 6rem; /* fallback for non-page contexts */
+}
+
+/* Override with exact spec position when inside the page-sized draft editor */
+.screenplay-draft .ProseMirror .sp-character {
+  /* Character name: 3.7" from paper left, content area starts at 1.5" → 2.2" */
+  padding-left: 0;
+  margin-left: 2.2in;
 }
 
 /* ── Dialogue ── */
@@ -584,12 +684,27 @@ body {
   margin-bottom: 0.25em;
 }
 
+/* Dialogue: 2.5"–6.0" from paper left → 1.0"–4.5" from content left → right margin 1.5" */
+.screenplay-draft .ProseMirror .sp-dialogue {
+  padding-left: 0;
+  padding-right: 0;
+  margin-left: 1.0in;
+  margin-right: 1.5in;
+}
+
 /* ── Parenthetical ── */
 .screenplay-draft .ProseMirror .sp-parenthetical,
 .sp-parenthetical {
   color: var(--so-paren);
   padding-left: 4.5rem;
   margin-bottom: 0.1em;
+}
+
+/* Parenthetical: 3.1"–5.9" from paper left → 1.6" from content left, 1.6" right margin */
+.screenplay-draft .ProseMirror .sp-parenthetical {
+  padding-left: 0;
+  margin-left: 1.6in;
+  margin-right: 1.6in;
 }
 
 /* Parenthetical wraps content in parens via CSS */
