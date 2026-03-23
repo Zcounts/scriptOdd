@@ -1,6 +1,5 @@
 import { ipcMain } from 'electron'
-import { autoUpdater } from 'electron-updater'
-import { checkForUpdates } from '../updater'
+import { checkForUpdates, quitAndInstall } from '../updater'
 
 export function registerUpdaterHandlers(): void {
   // Renderer requests a manual update check (e.g. from Help → Check for Updates).
@@ -10,8 +9,6 @@ export function registerUpdaterHandlers(): void {
 
   // Renderer requests quit-and-install after the update is downloaded.
   ipcMain.handle('update:install', () => {
-    // isSilent=false shows a progress dialog on Windows; isForceRunAfter=true
-    // re-launches the app after the installer finishes.
-    autoUpdater.quitAndInstall(false, true)
+    quitAndInstall()
   })
 }

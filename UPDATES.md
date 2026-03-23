@@ -61,7 +61,8 @@ This keeps version bumps and changelogs automatic while making releases delibera
 3. When you are ready to cut a release, **merge the Release PR**.
 4. Release Please pushes a version tag (e.g. `v1.0.1`) and creates the GitHub
    Release with auto-generated release notes.
-5. The version tag triggers `release.yml`, which:
+5. Creating the Release fires the `release: created` event, which triggers
+   `release.yml`:
    - Builds the Windows NSIS installer + `latest.yml` update metadata
      (using `--publish never` so electron-builder does not touch GitHub).
    - Builds the macOS DMG + ZIP + `latest-mac.yml` update metadata
@@ -69,13 +70,21 @@ This keeps version bumps and changelogs automatic while making releases delibera
    - Runs `gh release upload` to attach **all** built files to the GitHub
      Release that Release Please already created.
 
+**Why `on: release: types: [created]` instead of `on: push: tags`?**
+
+Release Please uses `GITHUB_TOKEN` to create the release and push the tag.
+GitHub's documented restriction: *events triggered by `GITHUB_TOKEN` do not
+fire `push` workflow triggers.* So `on: push: tags` is **never** fired when
+Release Please is the actor. The `release: created` event is an API-level event
+(not a push), and **is** fired even with `GITHUB_TOKEN` — so that trigger works
+reliably.
+
 **Why `gh release upload` instead of `--publish always`?**
 
 `electron-builder --publish always` tries to create a new GitHub Release and
 will conflict with (or silently skip) the one Release Please already published.
 Using `--publish never` + `gh release upload` decouples the build from the
-publish step and reliably attaches files to any existing release regardless of
-its draft/published state.
+publish step and reliably attaches files to the existing release.
 
 **Result:** The GitHub Release contains `.exe` and `.dmg` installers for manual
 download exactly as before, plus `latest.yml` / `latest-mac.yml` for the
@@ -185,6 +194,7 @@ environment variables are set.
 
 | File | Change |
 |------|--------|
-| `.github/workflows/release.yml` | Replaced `--publish always` with `--publish never` + `gh release upload` so assets are attached to the Release Please-created release |
-| `src/main/updater.ts` | Fixed `electron-updater` import: changed named import to default import to resolve ESM/CJS interop crash at app startup |
-| `UPDATES.md` | Updated — documents the `gh release upload` approach and the import fix |
+| `.github/workflows/release.yml` | Changed trigger from `on: push: tags` to `on: release: types: [created]` so the workflow actually fires when Release Please (using GITHUB_TOKEN) creates a release; changed tag reference to `github.event.release.tag_name`; added `shell: bash` to macOS upload step |
+| `src/main/updater.ts` | Added `quitAndInstall()` export so IPC handlers do not need to import `electron-updater` directly |
+| `src/main/ipc/updaterHandlers.ts` | **Root cause of startup crash fixed**: removed the named import `{ autoUpdater } from 'electron-updater'` (CJS module cannot satisfy ESM named imports); replaced with `quitAndInstall()` from `../updater` which already uses the correct default-import interop pattern |
+| `UPDATES.md` | Updated — documents the `release: created` trigger rationale and the import fix |

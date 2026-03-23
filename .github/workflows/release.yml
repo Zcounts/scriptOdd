@@ -1,19 +1,23 @@
 name: Build & Publish Release
 
-# Triggers when Release Please merges a Release PR and pushes a version tag.
-# Release Please already creates the GitHub Release with release notes.
-# This workflow builds the installers and uploads them to that existing release.
+# Triggers when Release Please creates the GitHub Release for a merged Release PR.
+#
+# Why "release: created" instead of "push: tags":
+#   Release Please uses GITHUB_TOKEN to create the release and push the tag.
+#   GitHub's documented restriction: events triggered by GITHUB_TOKEN do not
+#   fire "push" workflow triggers, so "on: push: tags" never runs.
+#   The "release: created" event IS fired (it is an API-level event, not a
+#   push event) even when GITHUB_TOKEN is the actor — so this trigger works.
 #
 # Flow:
-#   1. Merge Release PR → Release Please pushes tag + creates GitHub Release.
-#   2. This workflow triggers on the tag.
+#   1. Merge Release PR → Release Please creates GitHub Release + pushes tag.
+#   2. "release: created" event fires → this workflow runs.
 #   3. Builds Windows .exe + latest.yml  and macOS .dmg/.zip + latest-mac.yml.
 #   4. Uses `gh release upload` to attach all files to the existing release.
 
 on:
-  push:
-    tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+  release:
+    types: [created]
 
 permissions:
   contents: write   # needed to upload assets to the GitHub Release
@@ -42,10 +46,10 @@ jobs:
 
       - name: Upload Windows assets to GitHub Release
         # Attaches the NSIS installer and the auto-update metadata to the
-        # release that Release Please already created for this tag.
+        # release that Release Please already created.
         shell: bash
         run: |
-          gh release upload "${{ github.ref_name }}" \
+          gh release upload "${{ github.event.release.tag_name }}" \
             dist/*.exe \
             dist/latest.yml \
             --clobber
@@ -83,8 +87,9 @@ jobs:
         #   APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Upload macOS assets to GitHub Release
+        shell: bash
         run: |
-          gh release upload "${{ github.ref_name }}" \
+          gh release upload "${{ github.event.release.tag_name }}" \
             dist/*.dmg \
             dist/*.zip \
             dist/latest-mac.yml \
