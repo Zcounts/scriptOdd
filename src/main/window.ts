@@ -11,7 +11,7 @@ export function createWindow(): BrowserWindow {
     backgroundColor: '#0c0c0f', // Matches dark theme bg before renderer loads
     show: false,               // Show after ready-to-show to avoid flash
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: true,
       contextIsolation: true,
       nodeIntegration: false,

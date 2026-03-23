@@ -1,18 +1,22 @@
 name: CI Build
 
-# Runs on every push (to any branch) and every pull request.
+# Runs on every push to main and every pull request.
 # Builds installable artifacts for testing but does NOT publish a GitHub Release.
 # Artifacts are retained for 7 days so you can download and test them.
 
 on:
   push:
     branches:
-      - '**'
+      - main
     tags-ignore:
-      # Skip CI builds when Release Please pushes a version tag — the
-      # dedicated release.yml workflow handles those.
+      # Skip CI builds when Release Please pushes a version tag — release assets
+      # are built in the release-please workflow that created the release.
       - 'v*'
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -40,6 +44,12 @@ jobs:
       - name: Run tests
         run: npm run test
 
+      - name: Build app bundles
+        run: npm run build
+
+      - name: Verify packaged main/preload bundle paths
+        run: npm run verify:bundle
+
   # ── Windows installer (no publish) ───────────────────────────────────────────
   build-windows:
     name: Build (Windows)
@@ -60,11 +70,17 @@ jobs:
         # --publish never prevents electron-builder from uploading to GitHub Releases.
         run: npm run dist:win -- --publish never
 
+      - name: Verify packaged main/preload bundle paths
+        run: npm run verify:bundle
+
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
           name: windows-installer
-          path: dist/*.exe
+          path: |
+            dist/*.exe
+            dist/latest*.yml
+            dist/*.blockmap
           retention-days: 7
 
   # ── macOS installers (no publish) ────────────────────────────────────────────
@@ -88,6 +104,9 @@ jobs:
         # --publish never keeps this as a CI artifact only.
         run: npm run dist:mac -- --publish never
 
+      - name: Verify packaged main/preload bundle paths
+        run: npm run verify:bundle
+
       - name: Upload macOS installers
         uses: actions/upload-artifact@v4
         with:
@@ -95,4 +114,6 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.zip
+            dist/latest-mac*.yml
+            dist/*.blockmap
           retention-days: 7

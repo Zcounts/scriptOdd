@@ -17,6 +17,7 @@
     "typecheck:web": "tsc -p tsconfig.web.json --noEmit",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "test": "node --test src/tests/*.test.mjs",
+    "verify:bundle": "node scripts/verify-electron-bundle.mjs",
     "package": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder",
     "dist:win": "npm run build && electron-builder --win",
@@ -75,6 +76,7 @@
     "nsis": {
       "oneClick": false,
       "perMachine": false,
+      "runAfterFinish": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
