@@ -341,8 +341,11 @@ function SceneCard({ scene, number, isDragging = false, isActive = false, onClic
           )}
         </div>
 
-        {/* Title (prominent) + heading (subtitle) */}
-        <div className="px-3 pb-1.5">
+        {/* Title (prominent) + heading (subtitle) — double click to edit title */}
+        <div
+          className="px-3 pb-1.5"
+          onDoubleClick={(e) => { e.stopPropagation(); setEditingTitle(true) }}
+        >
           {scene.title ? (
             <>
               <p className="text-sm font-semibold text-so-text leading-tight">{scene.title}</p>
