@@ -1,0 +1,98 @@
+name: CI Build
+
+# Runs on every push (to any branch) and every pull request.
+# Builds installable artifacts for testing but does NOT publish a GitHub Release.
+# Artifacts are retained for 7 days so you can download and test them.
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      # Skip CI builds when Release Please pushes a version tag — the
+      # dedicated release.yml workflow handles those.
+      - 'v*'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Type-check + unit tests (fast, ubuntu) ───────────────────────────────────
+  check:
+    name: Type-check & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm run test
+
+  # ── Windows installer (no publish) ───────────────────────────────────────────
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows installer
+        # --publish never prevents electron-builder from uploading to GitHub Releases.
+        run: npm run dist:win -- --publish never
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/*.exe
+          retention-days: 7
+
+  # ── macOS installers (no publish) ────────────────────────────────────────────
+  build-mac:
+    name: Build (macOS)
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build macOS installers
+        # Builds DMG (manual install) + ZIP (auto-update).
+        # --publish never keeps this as a CI artifact only.
+        run: npm run dist:mac -- --publish never
+
+      - name: Upload macOS installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installers
+          path: |
+            dist/*.dmg
+            dist/*.zip
+          retention-days: 7
